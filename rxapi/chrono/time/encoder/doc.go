@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-// Package time defines the encoder abstraction used by rxlog to serialize
+// Package timeenc defines the encoder abstraction used by rxlog to serialize
 // time.Time values into byte buffers.
 //
 // This package is intentionally small and narrowly focused. It does not know
@@ -119,4 +119,4 @@
 // timestamp serialization in rxlog. It defines how time.Time values are
 // converted into bytes, while leaving the choice of concrete formats and time
 // sources to code outside this package.
-package time
+package timeenc
