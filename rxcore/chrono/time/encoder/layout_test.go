@@ -24,9 +24,9 @@ import (
 	timeenc "dirpx.dev/rxlog/rxcore/chrono/time/encoder"
 )
 
-// encodeWith is a helper that runs the given layout encoder on a fresh buffer
+// lEncodeWith is a helper that runs the given layout encoder on a fresh buffer
 // and returns the resulting string.
-func encodeWith(t *testing.T, layout string, loc *time.Location, ts time.Time) string {
+func lEncodeWith(t *testing.T, layout string, loc *time.Location, ts time.Time) string {
 	t.Helper()
 
 	enc := timeenc.TimeLayoutEncoder(layout, loc)
@@ -51,7 +51,7 @@ func TestTimeLayoutEncoder_PreservesOriginalLocationWhenLocNil(t *testing.T) {
 
 	ts := time.Date(2025, 1, 2, 3, 4, 5, 0, loc)
 
-	got := encodeWith(t, layout, nil, ts)
+	got := lEncodeWith(t, layout, nil, ts)
 	want := ts.Format(layout)
 
 	if got != want {
@@ -73,7 +73,7 @@ func TestTimeLayoutEncoder_UsesProvidedLocation(t *testing.T) {
 	// in the formatted output (offset changes from +00:00 to +03:00).
 	ts := time.Date(2025, 1, 2, 3, 4, 5, 0, locUTC)
 
-	got := encodeWith(t, layout, locPlus3, ts)
+	got := lEncodeWith(t, layout, locPlus3, ts)
 	want := ts.In(locPlus3).Format(layout)
 
 	if got != want {
