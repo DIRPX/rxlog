@@ -21,31 +21,6 @@ import (
 	"strings"
 )
 
-// Enabler decides whether log events at a given severity Level SHOULD be
-// emitted.
-//
-// Implementations of Enabler are intended to provide deterministic,
-// severity-based filtering. Concerns such as sampling, rate limiting, or
-// content-based filtering SHOULD be implemented in higher-level components
-// (for example, as separate predicates or cores), and MUST NOT be encoded
-// into Enabled in a way that makes its behavior non-deterministic.
-//
-// A common implementation pattern is to treat a concrete Level value as a
-// threshold: an enabler representing a minimum level MIN SHOULD return true
-// for MIN and all more severe levels, and false for less severe levels.
-// For example, if MIN is Warn, then Enabled(Warn), Enabled(Error), and
-// Enabled(Fatal) SHOULD return true, while Enabled(Info) and Enabled(Debug)
-// SHOULD return false.
-type Enabler interface {
-	// Enabled reports whether logging at the provided Level SHOULD be allowed.
-	//
-	// Enabled MUST NOT have side effects and MUST be safe to call concurrently
-	// from multiple goroutines. Callers MAY invoke Enabled frequently (for
-	// example, on every log attempt) and therefore implementations SHOULD keep
-	// this check as lightweight as possible.
-	Enabled(Level) bool
-}
-
 // Level represents the logging severity used across rxlog.
 //
 // The numeric ordering of Level values is normative: lower values are more
