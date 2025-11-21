@@ -26,20 +26,20 @@ import (
 	"dirpx.dev/rxlog/rxapi/encoder/encoders"
 )
 
-// recordingEncoder is a minimal ObjectEncoder test double that only
+// errorRecordingEncoder is a minimal ObjectEncoder test double that only
 // implements AddString and records all key/value pairs passed through it.
 //
 // All other ObjectEncoder methods are satisfied via the embedded
 // base.ObjectEncoder interface, but they remain unused in these tests.
-type recordingEncoder struct {
+type errorRecordingEncoder struct {
 	base.ObjectEncoder // embedded to satisfy the full interface
 
 	keys   []string
 	values []string
 }
 
-func newRecordingEncoder() *recordingEncoder {
-	return &recordingEncoder{
+func newRecordingEncoder() *errorRecordingEncoder {
+	return &errorRecordingEncoder{
 		keys:   make([]string, 0, 4),
 		values: make([]string, 0, 4),
 	}
@@ -47,7 +47,7 @@ func newRecordingEncoder() *recordingEncoder {
 
 // AddString records the key/value pair and appends the value to the buffer.
 // This is the only ObjectEncoder method exercised by EncodeError.
-func (e *recordingEncoder) AddString(dst *buffer.Buffer, key, value string) *buffer.Buffer {
+func (e *errorRecordingEncoder) AddString(dst *buffer.Buffer, key, value string) *buffer.Buffer {
 	e.keys = append(e.keys, key)
 	e.values = append(e.values, value)
 
@@ -56,7 +56,7 @@ func (e *recordingEncoder) AddString(dst *buffer.Buffer, key, value string) *buf
 	return dst
 }
 
-func (e *recordingEncoder) last() (key, value string, ok bool) {
+func (e *errorRecordingEncoder) last() (key, value string, ok bool) {
 	if len(e.keys) == 0 {
 		return "", "", false
 	}
