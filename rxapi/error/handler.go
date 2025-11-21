@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package error
+package handler
 
 // Handler defines how encoding errors are handled during log entry encoding.
 //
