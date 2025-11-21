@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package handlers
+package handler
 
 // FailOnErrorHandler stops encoding immediately when an error occurs.
 //

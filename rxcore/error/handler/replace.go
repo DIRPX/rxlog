@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package handlers
+package handler
 
 // ReplaceOnErrorHandler replaces the failing field's value with a placeholder.
 //

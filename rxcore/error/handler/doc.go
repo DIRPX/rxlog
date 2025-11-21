@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-// Package handlers provides built-in implementations of the error.Handler
+// Package handler provides built-in implementations of the error.Handler
 // interface used by rxlog encoders to decide how to react when a field
 // fails to encode.
 //
@@ -33,9 +33,9 @@
 // whose HandleError method is safe for concurrent use when the associated
 // encoder is used concurrently.
 //
-// # Overview of provided handlers
+// # Overview of provided handler
 //
-// The handlers package currently provides four primary strategies:
+// The handler package currently provides four primary strategies:
 //
 //   - FailOnErrorHandler: propagate the encoding error and abort encoding.
 //
@@ -49,7 +49,7 @@
 //     placeholder value for the failing field instead of the original
 //     value, while allowing encoding of the entry to continue.
 //
-// All handlers share the same high-level behavior with respect to the
+// All handler share the same high-level behavior with respect to the
 // Handler interface: they never attempt to repair encoder-internal state,
 // they do not mutate encoder configuration, and they do not perform I/O
 // directly against the encoder's sinks. Their sole responsibility is to
@@ -133,7 +133,7 @@
 //
 // # Concurrency and side effects
 //
-// All handlers in this package are designed to be safe for concurrent use
+// All handler in this package are designed to be safe for concurrent use
 // by multiple goroutines when used with concurrent encoders. In particular:
 //
 //   - FailOnErrorHandler and SkipOnErrorHandler are stateless and immutable.
@@ -144,14 +144,14 @@
 //   - ReplaceOnErrorHandler holds a Placeholder value that SHOULD be treated
 //     as immutable once the handler is in use.
 //
-// None of the handlers modify encoder-internal state, and none of them
+// None of the handler modify encoder-internal state, and none of them
 // retain references to encoder-specific data beyond the duration of a
 // HandleError call. Any logging or replacement behavior they trigger is
 // explicitly exposed through their public fields and documented semantics.
 //
 // # Usage guidance
 //
-// The handlers in this package are intended to be used as building blocks
+// The handler in this package are intended to be used as building blocks
 // when configuring encoders and cores:
 //
 //   - Applications that prefer strict behavior can use FailOnErrorHandler
@@ -164,7 +164,7 @@
 //   - Applications that need to preserve schema shape can use
 //     ReplaceOnErrorHandler with an appropriate Placeholder value.
 //
-// Custom handlers can be implemented by satisfying the error.Handler
+// Custom handler can be implemented by satisfying the error.Handler
 // interface directly, using these built-ins as reference implementations
 // for correct interaction with the encoding pipeline.
-package handlers
+package handler

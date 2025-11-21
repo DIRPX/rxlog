@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package handlers
+package handler
 
 // SkipOnErrorHandler skips the failing field and continues encoding.
 //

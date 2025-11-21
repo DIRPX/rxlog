@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package handlers
+package handler
 
 // LogOnErrorHandler logs encoding errors to a configured callback and then
 // allows encoding to continue.
