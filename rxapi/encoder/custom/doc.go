@@ -114,7 +114,7 @@
 //     implementation instead of falling back to built-in or reflection-based
 //     encoding;
 //
-//   - error handlers and reflective encoders can be combined with custom
+//   - error handler and reflective encoders can be combined with custom
 //     encoders to provide sensible fallbacks when no custom implementation
 //     is available for a given value.
 //

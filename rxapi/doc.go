@@ -45,7 +45,7 @@
 //
 //   - Concurrency awareness: contracts explicitly state which components
 //     MUST be safe for concurrent use (for example, cores, encoders,
-//     handlers) and which are confined to a single goroutine at a time
+//     handler) and which are confined to a single goroutine at a time
 //     (for example, individual object and array encoder instances).
 //
 //   - Compatibility over time: types and interfaces in this module are
@@ -121,7 +121,7 @@
 //     backends while still depending on well-defined contracts;
 //
 //   - infrastructure libraries that implement cores, encoders, writers,
-//     hooks, and error handlers on top of rxapi abstractions; and
+//     hooks, and error handler on top of rxapi abstractions; and
 //
 //   - reference implementations that live in separate modules (for
 //     example, rxcore) and are free to evolve as long as they continue to
