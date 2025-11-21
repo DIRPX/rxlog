@@ -14,14 +14,18 @@
    limitations under the License.
 */
 
-// Package timeenc defines the encoder abstraction used by rxlog to serialize
-// time.Time values into byte buffers.
+// Package timeenc defines the time encoder abstraction used by rxlog to
+// serialize time.Time values into byte buffers.
 //
 // This package is intentionally small and narrowly focused. It does not know
 // where time values come from, how they are obtained, or which concrete
 // formats a particular application will use. Its sole responsibility is to
 // define how a timestamp that is already available as a time.Time should be
 // converted into bytes.
+//
+// Higher-level configuration (for example, choosing specific layouts or
+// predefined encoders) is provided by other files in this package and by the
+// nested layout subpackage.
 //
 // # Overview
 //
@@ -36,9 +40,9 @@
 //	type Encoder func(dst *buffer.Buffer, t time.Time) *buffer.Buffer
 //
 // Implementations are responsible only for taking a time.Time value and
-// appending some representation of that value to the provided buffer.
-// They do not perform I/O, do not decide how timestamps are obtained, and
-// do not manage buffer lifetimes.
+// appending some representation of that value to the provided buffer. They do
+// not perform I/O, do not decide how timestamps are obtained, and do not manage
+// buffer lifetimes.
 //
 // # Encoder semantics and buffer interaction
 //
@@ -80,7 +84,8 @@
 //
 // The choice of format is entirely up to the code that constructs and wires
 // Encoders. This package only defines the function type and its behavioral
-// contract.
+// contract. Common layouts and predefined encoders are provided by encoders.go
+// in this package and by the layout subpackage.
 //
 // # Time zones and monotonic component
 //
@@ -105,8 +110,8 @@
 //   - Some component obtains a time.Time value by whatever means are
 //     appropriate for the application.
 //
-//   - That component invokes a configured time.Encoder with the current
-//     buffer and the time.Time value to append a timestamp field.
+//   - That component invokes a configured time encoder with the current buffer
+//     and the time.Time value to append a timestamp field.
 //
 //   - The same buffer is then used to encode other fields and eventually
 //     written to an output sink by other parts of the system.
@@ -115,8 +120,8 @@
 // the same Encoder can be reused across multiple callers, cores, and outputs,
 // as long as all of them adhere to the buffer ownership and lifetime rules.
 //
-// In summary, the time package provides a small but critical abstraction for
+// In summary, the encoder package provides a small but critical abstraction for
 // timestamp serialization in rxlog. It defines how time.Time values are
-// converted into bytes, while leaving the choice of concrete formats and time
-// sources to code outside this package.
+// converted into bytes, while leaving the choice of concrete formats, layouts,
+// and time sources to code outside this package.
 package timeenc
