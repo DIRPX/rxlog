@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package timeenc
+package time
 
 import (
 	"time"

@@ -124,4 +124,4 @@
 // timestamp serialization in rxlog. It defines how time.Time values are
 // converted into bytes, while leaving the choice of concrete formats, layouts,
 // and time sources to code outside this package.
-package timeenc
+package time
