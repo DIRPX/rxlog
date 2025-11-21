@@ -20,7 +20,8 @@ import (
 	"time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
-	"dirpx.dev/rxlog/rxapi/chrono/time/encoder/layout"
+	time2 "dirpx.dev/rxlog/rxapi/chrono/time"
+	"dirpx.dev/rxlog/rxcore/chrono/time/encoder/layout"
 )
 
 // These predefined encoders format time as human-readable strings or numeric
@@ -43,7 +44,7 @@ var (
 	//
 	// Example:
 	//   2025-11-20T18:47:12+03:00
-	ISO8601SecondsTimeEncoder Encoder = TimeLayoutEncoder(layout.ISO8601Seconds, time.UTC)
+	ISO8601SecondsTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.ISO8601Seconds, time.UTC)
 
 	// ISO8601MillisTimeEncoder formats time as an ISO 8601–style string with
 	// millisecond precision and a numeric time zone offset without a colon
@@ -54,21 +55,21 @@ var (
 	//
 	// Example:
 	//   2025-11-20T18:47:12.123+0300
-	ISO8601MillisTimeEncoder Encoder = TimeLayoutEncoder(layout.ISO8601Millis, time.UTC)
+	ISO8601MillisTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.ISO8601Millis, time.UTC)
 
 	// ISO8601MicrosTimeEncoder formats time as an ISO 8601–style string with
 	// microsecond precision and a numeric time zone offset including a colon.
 	//
 	// Layout:
 	//   2006-01-02T15:04:05.000000Z07:00
-	ISO8601MicrosTimeEncoder Encoder = TimeLayoutEncoder(layout.ISO8601Micros, time.UTC)
+	ISO8601MicrosTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.ISO8601Micros, time.UTC)
 
 	// ISO8601NanosTimeEncoder formats time as an ISO 8601–style string with
 	// nanosecond precision and a numeric time zone offset including a colon.
 	//
 	// Layout:
 	//   2006-01-02T15:04:05.000000000Z07:00
-	ISO8601NanosTimeEncoder Encoder = TimeLayoutEncoder(layout.ISO8601Nanos, time.UTC)
+	ISO8601NanosTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.ISO8601Nanos, time.UTC)
 )
 
 // RFC 3339 encoders (canonical for JSON / API payloads).
@@ -81,14 +82,14 @@ var (
 	//
 	// Example:
 	//   2025-11-20T18:47:12+03:00
-	RFC3339TimeEncoder Encoder = TimeLayoutEncoder(layout.RFC3339, time.UTC)
+	RFC3339TimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC3339, time.UTC)
 
 	// RFC3339NanoTimeEncoder formats time using RFC3339Nano, providing
 	// nanosecond precision while remaining human-readable.
 	//
 	// This is typically the most precise standardized textual format and is
 	// well-suited for high-precision logging.
-	RFC3339NanoTimeEncoder Encoder = TimeLayoutEncoder(layout.RFC3339Nano, time.UTC)
+	RFC3339NanoTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC3339Nano, time.UTC)
 )
 
 // Other common textual layouts.
@@ -97,27 +98,27 @@ var (
 	//
 	// Example:
 	//   Mon, 02 Jan 2006 15:04:05 MST
-	RFC1123TimeEncoder Encoder = TimeLayoutEncoder(layout.RFC1123, time.UTC)
+	RFC1123TimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC1123, time.UTC)
 
 	// RFC1123ZTimeEncoder formats time using the RFC1123Z layout, which uses
 	// a numeric time zone offset instead of an abbreviation.
 	//
 	// Example:
 	//   Mon, 02 Jan 2006 15:04:05 -0700
-	RFC1123ZTimeEncoder Encoder = TimeLayoutEncoder(layout.RFC1123Z, time.UTC)
+	RFC1123ZTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC1123Z, time.UTC)
 
 	// RFC822TimeEncoder formats time using the RFC822 layout.
-	RFC822TimeEncoder Encoder = TimeLayoutEncoder(layout.RFC822, time.UTC)
+	RFC822TimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC822, time.UTC)
 
 	// RFC822ZTimeEncoder formats time using the RFC822Z layout, which includes
 	// an explicit numeric zone.
-	RFC822ZTimeEncoder Encoder = TimeLayoutEncoder(layout.RFC822Z, time.UTC)
+	RFC822ZTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC822Z, time.UTC)
 
 	// RFC850TimeEncoder formats time using the RFC850 layout (HTTP-date style).
 	//
 	// Example:
 	//   Monday, 02-Jan-06 15:04:05 MST
-	RFC850TimeEncoder Encoder = TimeLayoutEncoder(layout.RFC850, time.UTC)
+	RFC850TimeEncoder time2.Encoder = TimeLayoutEncoder(layout.RFC850, time.UTC)
 
 	// ANSICTimeEncoder formats time using the ANSIC layout.
 	//
@@ -126,7 +127,7 @@ var (
 	//
 	// This encoder uses time.Local, which means the output reflects the local
 	// time zone of the running process.
-	ANSICTimeEncoder Encoder = TimeLayoutEncoder(layout.ANSIC, time.Local)
+	ANSICTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.ANSIC, time.Local)
 
 	// UnixDateTimeEncoder formats time using the UnixDate layout.
 	//
@@ -134,7 +135,7 @@ var (
 	//   Mon Jan _2 15:04:05 MST 2006
 	//
 	// As with ANSICTimeEncoder, it uses time.Local for time zone resolution.
-	UnixDateTimeEncoder Encoder = TimeLayoutEncoder(layout.UnixDate, time.Local)
+	UnixDateTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.UnixDate, time.Local)
 
 	// KitchenTimeEncoder formats only the clock portion in a human-friendly
 	// 12-hour form with AM/PM.
@@ -147,23 +148,23 @@ var (
 	//
 	// Passing nil as the location means the timestamp’s existing Location is
 	// used as-is.
-	KitchenTimeEncoder Encoder = TimeLayoutEncoder(layout.Kitchen, nil)
+	KitchenTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.Kitchen, nil)
 
 	// StampTimeEncoder formats time using time.Stamp, a short locale-like
 	// representation intended primarily for human consumption.
-	StampTimeEncoder Encoder = TimeLayoutEncoder(layout.Stamp, nil)
+	StampTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.Stamp, nil)
 
 	// StampMilliTimeEncoder formats time using time.StampMilli, extending
 	// Stamp with millisecond precision.
-	StampMilliTimeEncoder Encoder = TimeLayoutEncoder(layout.StampMilli, nil)
+	StampMilliTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.StampMilli, nil)
 
 	// StampMicroTimeEncoder formats time using time.StampMicro, extending
 	// Stamp with microsecond precision.
-	StampMicroTimeEncoder Encoder = TimeLayoutEncoder(layout.StampMicro, nil)
+	StampMicroTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.StampMicro, nil)
 
 	// StampNanoTimeEncoder formats time using time.StampNano, extending
 	// Stamp with nanosecond precision.
-	StampNanoTimeEncoder Encoder = TimeLayoutEncoder(layout.StampNano, nil)
+	StampNanoTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.StampNano, nil)
 )
 
 // Date / time-only textual encoders.
@@ -173,21 +174,21 @@ var (
 	//
 	// Layout:
 	//   2006-01-02
-	DateOnlyTimeEncoder Encoder = TimeLayoutEncoder(layout.Date, time.UTC)
+	DateOnlyTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.Date, time.UTC)
 
 	// TimeOnlyTimeEncoder formats only the clock time with second precision
 	// in UTC, with no date component.
 	//
 	// Layout:
 	//   15:04:05
-	TimeOnlyTimeEncoder Encoder = TimeLayoutEncoder(layout.Time, time.UTC)
+	TimeOnlyTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.Time, time.UTC)
 
 	// TimeMillisOnlyTimeEncoder formats only the clock time with millisecond
 	// precision in UTC.
 	//
 	// Layout:
 	//   15:04:05.000
-	TimeMillisOnlyTimeEncoder Encoder = TimeLayoutEncoder(layout.TimeMillis, time.UTC)
+	TimeMillisOnlyTimeEncoder time2.Encoder = TimeLayoutEncoder(layout.TimeMillis, time.UTC)
 )
 
 // Numeric Unix timestamp encoders.
@@ -202,7 +203,7 @@ var (
 	//
 	// Example:
 	//   1672531200
-	UnixSecondsTimeEncoder Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	UnixSecondsTimeEncoder time2.Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
 		dst.AppendInt64(t.Unix())
 		return dst
 	}
@@ -212,21 +213,21 @@ var (
 	//
 	// Example:
 	//   1672531200000
-	UnixMillisTimeEncoder Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	UnixMillisTimeEncoder time2.Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
 		dst.AppendInt64(t.UnixMilli())
 		return dst
 	}
 
 	// UnixMicrosTimeEncoder writes microseconds since the Unix epoch as a
 	// base-10 integer.
-	UnixMicrosTimeEncoder Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	UnixMicrosTimeEncoder time2.Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
 		dst.AppendInt64(t.UnixMicro())
 		return dst
 	}
 
 	// UnixNanosTimeEncoder writes nanoseconds since the Unix epoch as a
 	// base-10 integer.
-	UnixNanosTimeEncoder Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	UnixNanosTimeEncoder time2.Encoder = func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
 		dst.AppendInt64(t.UnixNano())
 		return dst
 	}
