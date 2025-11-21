@@ -93,6 +93,23 @@ func FromString(name string) (durationapi.Encoder, error) {
 	return enc, nil
 }
 
+// MustFromString is a convenience helper that resolves a duration encoder by
+// name and panics if the name is not registered.
+//
+// This is useful in static setup code (for example, wiring encoders from
+// hard-coded configuration) where an unknown encoder name indicates a
+// programmer error or a misconfigured build. It SHOULD NOT be used for
+// untrusted or user-provided input, where returning an error is preferable.
+//
+// The panic message is the same error produced by FromString(name).
+func MustFromString(name string) durationapi.Encoder {
+	enc, err := FromString(name)
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
 // Register installs or overrides a duration encoder under the given symbolic name.
 //
 // If an encoder is already registered under name, it will be replaced.
@@ -113,21 +130,4 @@ func FromString(name string) (durationapi.Encoder, error) {
 //     MustFromString.
 func Register(name string, encoder durationapi.Encoder) {
 	registry[name] = encoder
-}
-
-// MustFromString is a convenience helper that resolves a duration encoder by
-// name and panics if the name is not registered.
-//
-// This is useful in static setup code (for example, wiring encoders from
-// hard-coded configuration) where an unknown encoder name indicates a
-// programmer error or a misconfigured build. It SHOULD NOT be used for
-// untrusted or user-provided input, where returning an error is preferable.
-//
-// The panic message is the same error produced by FromString(name).
-func MustFromString(name string) durationapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
 }
