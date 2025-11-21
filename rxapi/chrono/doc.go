@@ -60,7 +60,7 @@
 //     (for example, RFC 3339 or Unix timestamp formats) live outside this
 //     API layer.
 //
-//   - chrono/duration (if present) is reserved for abstractions related to
+//   - chrono/duration is reserved for abstractions related to
 //     encoding time.Duration values in a consistent and configurable way,
 //     mirroring the approach used for time.Time.
 //
