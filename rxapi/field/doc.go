@@ -21,7 +21,7 @@
 // attribute of a log event (for example, "user_id", "request_id", "duration").
 // Fields are designed to:
 //
-//   - avoid reflection in hot paths by normalizing values into a small,
+//   - avoid reflection on hot paths by normalizing values into a small,
 //     fixed set of storage slots;
 //
 //   - preserve type information via an explicit discriminator; and
@@ -29,7 +29,7 @@
 //   - provide a stable contract between field producers (callers and helper
 //     functions) and field consumers (encoders and cores).
 //
-// # Overview
+// # Data model
 //
 // Conceptually, a Field is a tagged union:
 //
@@ -43,9 +43,54 @@
 //   - a small set of storage slots (Integer, String, Interface) hold the
 //     actual data in a normalized representation.
 //
-// This design allows encoders to recover the original logical value without
-// using reflection: they switch on Type and read the appropriate storage
-// slot(s) according to the rules defined for each Type variant.
+// Encoders recover the logical value by switching on Type and reading the
+// appropriate storage slots according to the rules documented for each
+// ftype.Type variant. This allows reflection-free encoding while keeping
+// the mapping from Go types to wire representation explicit and testable.
+//
+// # Constructors and pointer helpers
+//
+// The package provides a set of well-typed helper functions for constructing
+// Field values from common Go types. These helpers encode the mapping from
+// concrete Go types to ftype.Type and storage slots. Examples include:
+//
+//   - Int64, Int32, Int16, Int8, Int, Uint64, Uint32, Uint16, Uint8, Uint,
+//     Uintptr;
+//
+//   - Float64, Float32, Complex128, Complex64;
+//
+//   - Bool, String, Binary, ByteString;
+//
+//   - Time, TimeFull, Duration;
+//
+//   - Array, Object, Inline, Namespace, Reflect;
+//
+//   - Error, Stringer.
+//
+// For many scalar types there are pointer-based variants with the "Ptr"
+// suffix (for example, Int64Ptr, UintPtr, Float64Ptr, BoolPtr, StringPtr,
+// TimePtr, DurationPtr, Complex64Ptr, ErrorPtr, StringerPtr). These helpers
+// follow a consistent convention:
+//
+//   - if the pointer is nil, they return a Skip field, which encoders
+//     ignore completely;
+//
+//   - if the pointer is non-nil, they behave like the corresponding
+//     value-based helper on the dereferenced value.
+//
+// This pattern makes it easy to log optional values that may or may not be
+// present without forcing callers to branch at each call site.
+//
+// The Any helper provides a convenience mapping from interface{} to Field
+// using a type switch. It chooses specific field constructors for common
+// concrete types and falls back to Reflect for unknown types. Because Any
+// may incur additional overhead compared to explicit helpers, it SHOULD be
+// used sparingly in performance-sensitive code.
+//
+// In typical usage, callers SHOULD prefer these helpers over manual
+// initialization of Field structs. Constructing fields by hand requires
+// intimate knowledge of the storage invariants for each ftype.Type and is
+// more error-prone.
 //
 // # Producer responsibilities
 //
@@ -53,27 +98,25 @@
 // package or application-level adapters) MUST:
 //
 //   - choose a Type that accurately reflects both the logical kind of the
-//     value and the storage slot(s) being used;
+//     value and the storage slots being used;
 //
-//   - populate the storage slot(s) in a way that matches the chosen Type
+//   - populate the storage slots in a way that matches the chosen Type
 //     (for example, storing integer-like values in the Integer slot, string
 //     data in the String slot, and more complex values in the Interface
 //     slot);
 //
-//   - avoid using the uninitialized or invalid Type sentinel for any Field
-//     that might be observed by encoders or other consumers;
+//   - avoid using the Unknown sentinel Type for any Field that might be
+//     observed by encoders or other consumers;
 //
-//   - use the Skip sentinel Type only when the intent is to produce a field
-//     that encoders will completely ignore; and
+//   - use the Skip sentinel Type only when the explicit intent is to produce
+//     a field that encoders will completely ignore; and
 //
 //   - for Inline fields, ensure that Interface holds a value implementing the
-//     appropriate object marshalling interface expected by encoders (as
-//     documented by the corresponding ftype.Type and encoder/base contracts).
+//     object marshalling interface expected by encoders (as documented by the
+//     corresponding ftype.Type and encoder/base contracts).
 //
-// In typical usage, callers SHOULD construct Field values via well-typed
-// helper functions provided by this package rather than filling the struct
-// by hand. These helpers encode the mapping from concrete Go types to
-// normalized storage and Type values, reducing the risk of inconsistencies.
+// Pointer-based helpers MUST treat nil pointers as an instruction to produce
+// Skip and MUST NOT attempt to encode or dereference such values.
 //
 // # Consumer responsibilities
 //
@@ -85,12 +128,12 @@
 //
 //   - For each Type, consumers MUST follow the documented rules for how to
 //     read and interpret the storage slots (for example, treating Integer as
-//     a nanosecond count for duration-like Types, or as IEEE-754 bits for
-//     floating-point Types).
+//     a nanosecond count for duration-like Types, as IEEE-754 bits for
+//     floating-point Types, or as UnixNano for time-like Types).
 //
 //   - For complex Types that rely on auxiliary interfaces (such as array or
 //     object marshalers, reflective encoders, or error encoders), consumers
-//     MUST type-assert Interface to the expected interface type and handle
+//     MUST type-assert Interface to the expected interface type and treat
 //     assertion failures as programming errors.
 //
 //   - For Skip, consumers MUST emit nothing; such fields represent explicit
@@ -137,15 +180,15 @@
 //
 // For testing and diagnostic tooling, the Field type provides an Equals
 // method that checks whether two Field values represent the same logical
-// attribute. Its semantics are carefully defined:
+// attribute. Its semantics are:
 //
 //   - Type and Key MUST match, otherwise the fields cannot represent the
-//     same attribute.
+//     same attribute;
 //
 //   - For some complex Types (for example, arrays, objects, errors, or
 //     reflect-based values), equality is defined in terms of structural
 //     equality of the underlying Interface value (typically via deep
-//     comparison), rather than pointer identity.
+//     comparison), rather than pointer identity;
 //
 //   - For all remaining Types, equality falls back to full struct equality,
 //     comparing Key, Type, and all storage slots.
