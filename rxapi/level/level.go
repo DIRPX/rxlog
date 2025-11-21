@@ -289,10 +289,10 @@ func (l *Level) UnmarshalText(text []byte) error {
 }
 
 // IsValid reports whether l is one of the defined severity levels that may be
-// used for actual log entries (Trace through Fatal, inclusive).
+// used for actual log entries (_min through _max, inclusive).
 //
-// It returns false for Invalid and for any value outside the [Trace, Fatal]
+// It returns false for Invalid and for any value outside the [ _min, _max ]
 // numeric range.
 func (l Level) IsValid() bool {
-	return l >= Trace && l <= Fatal
+	return l >= _min && l <= _max
 }
