@@ -187,7 +187,9 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = fmt.Fprintf(w, "internal error: %v", err)
 	}
-} // serveHTTP contains the actual request handling logic.
+}
+
+// serveHTTP contains the actual request handling logic.
 // It MUST write status codes and JSON bodies for all expected client
 // conditions (success, 4xx, 405) and return nil in those cases.
 //
