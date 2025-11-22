@@ -23,10 +23,10 @@ import (
 )
 
 // TestWithParamName verifies that WithParamName assigns the provided name
-// to HTTPHandler.ParamName without performing any additional normalization.
-// Normalization of empty names is handled by NewHTTPHandler, not by the option.
+// to Handler.ParamName without performing any additional normalization.
+// Normalization of empty names is handled by NewHandler, not by the option.
 func TestWithParamName(t *testing.T) {
-	var h httpctl.HTTPHandler
+	var h httpctl.Handler
 
 	// Non-empty name.
 	httpctl.WithParamName("custom")(&h)
@@ -35,7 +35,7 @@ func TestWithParamName(t *testing.T) {
 	}
 
 	// Empty name should be stored as-is; fallback to DefaultLevelParamName
-	// is applied by NewHTTPHandler, not by the option.
+	// is applied by NewHandler, not by the option.
 	httpctl.WithParamName("")(&h)
 	if h.ParamName != "" {
 		t.Fatalf("expected ParamName to be empty, got %q", h.ParamName)
@@ -43,10 +43,10 @@ func TestWithParamName(t *testing.T) {
 }
 
 // TestWithMaxBodyBytes verifies that WithMaxBodyBytes assigns the provided
-// value directly to HTTPHandler.MaxBodyBytes. Interpretation of zero or
-// negative values is handled by NewHTTPHandler, not by the option itself.
+// value directly to Handler.MaxBodyBytes. Interpretation of zero or
+// negative values is handled by NewHandler, not by the option itself.
 func TestWithMaxBodyBytes(t *testing.T) {
-	var h httpctl.HTTPHandler
+	var h httpctl.Handler
 
 	// Positive value.
 	httpctl.WithMaxBodyBytes(1234)(&h)
@@ -67,10 +67,10 @@ func TestWithMaxBodyBytes(t *testing.T) {
 	}
 }
 
-// TestWithReadOnly verifies that WithReadOnly toggles HTTPHandler.ReadOnly
+// TestWithReadOnly verifies that WithReadOnly toggles Handler.ReadOnly
 // exactly to the provided value.
 func TestWithReadOnly(t *testing.T) {
-	var h httpctl.HTTPHandler
+	var h httpctl.Handler
 
 	// Enable read-only mode.
 	httpctl.WithReadOnly(true)(&h)

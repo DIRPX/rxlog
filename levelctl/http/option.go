@@ -16,11 +16,11 @@
 
 package httpctl
 
-// Option configures an HTTPHandler.
+// Option configures an Handler.
 //
 // Options use the functional options pattern so that callers can tailor
 // handler behavior without exporting the struct fields directly.
-type Option func(*HTTPHandler)
+type Option func(*Handler)
 
 // WithParamName overrides the default parameter name ("level") used when
 // reading the desired level from query parameters and JSON bodies.
@@ -28,7 +28,7 @@ type Option func(*HTTPHandler)
 // Passing an empty name is allowed but discouraged; if ParamName is empty,
 // only plain-text bodies will be used as a source for mutation requests.
 func WithParamName(name string) Option {
-	return func(h *HTTPHandler) {
+	return func(h *Handler) {
 		h.ParamName = name
 	}
 }
@@ -37,7 +37,7 @@ func WithParamName(name string) Option {
 //
 // If n <= 0, the handler falls back to its internal default (4096 bytes).
 func WithMaxBodyBytes(n int64) Option {
-	return func(h *HTTPHandler) {
+	return func(h *Handler) {
 		h.MaxBodyBytes = n
 	}
 }
@@ -47,7 +47,7 @@ func WithMaxBodyBytes(n int64) Option {
 // When enabled, GET/HEAD remain functional, but POST/PUT/PATCH will
 // respond with HTTP 405 Method Not Allowed.
 func WithReadOnly(readOnly bool) Option {
-	return func(h *HTTPHandler) {
+	return func(h *Handler) {
 		h.ReadOnly = readOnly
 	}
 }

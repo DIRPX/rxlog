@@ -22,7 +22,7 @@
 //
 // # Overview
 //
-// The core type in this package is HTTPHandler. It binds a mutable log level
+// The core type in this package is Handler. It binds a mutable log level
 // threshold (level.Threshold) to a standard http.Handler, exposing a small,
 // well-defined protocol for reading and updating the process-wide minimum
 // log level.
@@ -43,7 +43,7 @@
 //	    atomic.SetLevel(level.Info)
 //
 //	    // Bind it to an HTTP endpoint.
-//	    handler := httpctl.NewHTTPHandler(&atomic)
+//	    handler := httpctl.NewHandler(&atomic)
 //
 //	    // Mount on an internal admin mux.
 //	    http.Handle("/debug/log-level", handler)
@@ -55,7 +55,7 @@
 //
 // # Protocol
 //
-// HTTPHandler implements the following semantics:
+// Handler implements the following semantics:
 //
 //   - GET  /…  → returns the current level as JSON:
 //     { "<fields.Level>": "<level-name>" }.
@@ -83,14 +83,14 @@
 //
 //	{ "<fields.Error>": "<human-readable-message>" }
 //
-// If the handler is misconfigured (for example, HTTPHandler.Level is nil) or
+// If the handler is misconfigured (for example, Handler.Level is nil) or
 // an unexpected internal failure occurs, serveHTTP returns a non-nil error
 // and the outer ServeHTTP wrapper responds with HTTP 500 and a simple
 // text/plain diagnostic.
 //
 // # Configuration and options
 //
-// HTTPHandler instances are constructed via NewHTTPHandler. The constructor
+// Handler instances are constructed via NewHandler. The constructor
 // accepts a level.Threshold implementation (for example, *rxcore/level.AtomicLevel)
 // and an optional list of functional options defined in this package:
 //
@@ -109,7 +109,7 @@
 //     mode, the handler effectively becomes a read-only introspection
 //     endpoint; mutation attempts receive HTTP 405 Method Not Allowed.
 //
-// All configuration fields of HTTPHandler are initialized by NewHTTPHandler
+// All configuration fields of Handler are initialized by NewHandler
 // and MAY be further adjusted by callers before the handler is exposed.
 //
 // # JSON schema and field names
@@ -127,7 +127,7 @@
 //
 // # Concurrency and safety
 //
-// HTTPHandler is safe for concurrent use by multiple goroutines as long as
+// Handler is safe for concurrent use by multiple goroutines as long as
 // the underlying level.Threshold implementation is itself safe for concurrent
 // use.
 //
@@ -148,7 +148,7 @@
 // authorization, or rate limiting. Exposing log-level control over HTTP is
 // inherently a privileged operation.
 //
-// Callers MUST protect endpoints created with HTTPHandler appropriately,
+// Callers MUST protect endpoints created with Handler appropriately,
 // for example by:
 //
 //   - Binding only to an internal interface (e.g., 127.0.0.1).

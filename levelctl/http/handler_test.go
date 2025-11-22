@@ -30,18 +30,18 @@ import (
 	rxclvl "dirpx.dev/rxlog/rxcore/level"
 )
 
-// newTestHandler constructs an HTTPHandler bound to an AtomicLevel
+// newTestHandler constructs an Handler bound to an AtomicLevel
 // initialized to the provided level.
 //
 // It returns both the handler and the underlying AtomicLevel so tests
 // can assert on state changes.
-func newTestHandler(t *testing.T, initial level.Level, opts ...httpctl.Option) (*httpctl.HTTPHandler, *rxclvl.AtomicLevel) {
+func newTestHandler(t *testing.T, initial level.Level, opts ...httpctl.Option) (*httpctl.Handler, *rxclvl.AtomicLevel) {
 	t.Helper()
 
 	atomicLvl := rxclvl.NewAtomicLevel()
 	atomicLvl.SetLevel(initial)
 
-	h := httpctl.NewHTTPHandler(&atomicLvl, opts...)
+	h := httpctl.NewHandler(&atomicLvl, opts...)
 	return h, &atomicLvl
 }
 
@@ -57,7 +57,7 @@ func decodeJSONMap(t *testing.T, body io.ReadCloser) map[string]string {
 	return m
 }
 
-func TestHTTPHandler_GetReturnsCurrentLevel(t *testing.T) {
+func TestHandler_GetReturnsCurrentLevel(t *testing.T) {
 	h, _ := newTestHandler(t, level.Info)
 
 	req := httptest.NewRequest(http.MethodGet, "/debug/log-level", nil)
@@ -87,7 +87,7 @@ func TestHTTPHandler_GetReturnsCurrentLevel(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_HeadReturnsNoBody(t *testing.T) {
+func TestHandler_HeadReturnsNoBody(t *testing.T) {
 	h, _ := newTestHandler(t, level.Warn)
 
 	req := httptest.NewRequest(http.MethodHead, "/debug/log-level", nil)
@@ -115,7 +115,7 @@ func TestHTTPHandler_HeadReturnsNoBody(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_PutViaQueryUpdatesLevel(t *testing.T) {
+func TestHandler_PutViaQueryUpdatesLevel(t *testing.T) {
 	h, atomicLvl := newTestHandler(t, level.Info)
 
 	req := httptest.NewRequest(http.MethodPut, "/debug/log-level?level=error", nil)
@@ -141,7 +141,7 @@ func TestHTTPHandler_PutViaQueryUpdatesLevel(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_PostJSONUpdatesLevel(t *testing.T) {
+func TestHandler_PostJSONUpdatesLevel(t *testing.T) {
 	h, atomicLvl := newTestHandler(t, level.Warn)
 
 	body := `{"` + fields.Level + `":"info"}`
@@ -169,7 +169,7 @@ func TestHTTPHandler_PostJSONUpdatesLevel(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_PostPlainTextUpdatesLevel(t *testing.T) {
+func TestHandler_PostPlainTextUpdatesLevel(t *testing.T) {
 	h, atomicLvl := newTestHandler(t, level.Info)
 
 	req := httptest.NewRequest(http.MethodPost, "/debug/log-level", strings.NewReader("warn\n"))
@@ -196,7 +196,7 @@ func TestHTTPHandler_PostPlainTextUpdatesLevel(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_ReadOnlyBlocksMutation(t *testing.T) {
+func TestHandler_ReadOnlyBlocksMutation(t *testing.T) {
 	h, atomicLvl := newTestHandler(t, level.Info, httpctl.WithReadOnly(true))
 
 	req := httptest.NewRequest(http.MethodPost, "/debug/log-level?level=error", nil)
@@ -222,7 +222,7 @@ func TestHTTPHandler_ReadOnlyBlocksMutation(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_InvalidJSONReturns400(t *testing.T) {
+func TestHandler_InvalidJSONReturns400(t *testing.T) {
 	h, _ := newTestHandler(t, level.Info)
 
 	req := httptest.NewRequest(http.MethodPost, "/debug/log-level", strings.NewReader("{"))
@@ -242,7 +242,7 @@ func TestHTTPHandler_InvalidJSONReturns400(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_InvalidLevelReturns400(t *testing.T) {
+func TestHandler_InvalidLevelReturns400(t *testing.T) {
 	h, _ := newTestHandler(t, level.Info)
 
 	req := httptest.NewRequest(http.MethodPost, "/debug/log-level", strings.NewReader("not-a-level"))
@@ -261,7 +261,7 @@ func TestHTTPHandler_InvalidLevelReturns400(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_MissingLevelReturns400(t *testing.T) {
+func TestHandler_MissingLevelReturns400(t *testing.T) {
 	h, _ := newTestHandler(t, level.Info)
 
 	// Empty body and no query parameter → missing level.
@@ -281,10 +281,10 @@ func TestHTTPHandler_MissingLevelReturns400(t *testing.T) {
 	}
 }
 
-func TestHTTPHandler_NilLevelProduces500(t *testing.T) {
+func TestHandler_NilLevelProduces500(t *testing.T) {
 	// Construct a handler with a nil Level to exercise the internal
 	// error path and the outer ServeHTTP wrapper.
-	h := &httpctl.HTTPHandler{
+	h := &httpctl.Handler{
 		Level:        nil,
 		ParamName:    httpctl.DefaultLevelParamName,
 		MaxBodyBytes: httpctl.DefaultMaxBodyBytes,

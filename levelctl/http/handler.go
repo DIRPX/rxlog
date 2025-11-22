@@ -65,7 +65,7 @@ const (
 	ContentTypeTextPlain = "text/plain; charset=utf-8"
 )
 
-// HTTPHandler exposes and mutates a mutable log level threshold over HTTP.
+// Handler exposes and mutates a mutable log level threshold over HTTP.
 //
 // It is intended for operational use: operators can inspect the current
 // log level and change it at runtime using a small, well-defined HTTP
@@ -74,7 +74,7 @@ const (
 // Concurrency and safety:
 //   - All operations delegate to a level.Threshold implementation, which
 //     MUST be safe for concurrent use by multiple goroutines.
-//   - HTTPHandler itself holds only immutable configuration and a
+//   - Handler itself holds only immutable configuration and a
 //     reference to the Threshold, so it is also safe for concurrent use.
 //
 // Semantics:
@@ -110,7 +110,7 @@ const (
 // authorization. Callers MUST mount it behind an appropriate access
 // control mechanism (for example, an internal admin port or reverse
 // proxy with authentication).
-type HTTPHandler struct {
+type Handler struct {
 	// Level is the mutable log level threshold being observed and mutated.
 	//
 	// This value MUST be non-nil. If it is nil at request time, the
@@ -140,7 +140,7 @@ type HTTPHandler struct {
 	ReadOnly bool
 }
 
-// NewHTTPHandler constructs an HTTPHandler bound to the provided mutable
+// NewHandler constructs an Handler bound to the provided mutable
 // threshold.
 //
 // The returned handler is safe for concurrent use as long as the supplied
@@ -149,14 +149,14 @@ type HTTPHandler struct {
 // Example usage:
 //
 //	lvl := rxclvl.NewAtomicLevel() // implements level.Threshold
-//	mux.Handle("/debug/log-level", httpctl.NewHTTPHandler(&lvl))
+//	mux.Handle("/debug/log-level", httpctl.NewHandler(&lvl))
 //
 // This will expose:
 //   - GET  /debug/log-level -> {"level":"info"}
 //   - PUT  /debug/log-level?level=error -> {"level":"error"}.
 //   - POST /debug/log-level with JSON/plain payload will behave similarly.
-func NewHTTPHandler(th level.Threshold, opts ...Option) *HTTPHandler {
-	h := &HTTPHandler{
+func NewHandler(th level.Threshold, opts ...Option) *Handler {
+	h := &Handler{
 		Level:        th,
 		ParamName:    DefaultLevelParamName,
 		MaxBodyBytes: DefaultMaxBodyBytes,
@@ -181,7 +181,7 @@ func NewHTTPHandler(th level.Threshold, opts ...Option) *HTTPHandler {
 // It delegates all request handling to the internal serveHTTP method.
 // If serveHTTP returns a non-nil error, ServeHTTP responds with HTTP 500
 // and a simple text/plain diagnostic.
-func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.serveHTTP(w, r); err != nil {
 		w.Header().Set(HeaderContentType, ContentTypeTextPlain)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -196,7 +196,7 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // It SHOULD return a non-nil error only for internal failures
 // (for example, nil Level, encoding errors). The outer ServeHTTP wrapper
 // translates such errors into HTTP 500 responses.
-func (h *HTTPHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	if h.Level == nil {
 		// Internal misconfiguration → bubble up, ServeHTTP will emit 500.
 		return fmt.Errorf("log level handler not initialized")
@@ -302,7 +302,7 @@ func writeJSONLevel(
 //	{ "<fields.Error>": "<message>" }
 //
 // This helper centralizes the error response shape so that all error
-// payloads produced by HTTPHandler are consistent with the global field
+// payloads produced by Handler are consistent with the global field
 // schema.
 func writeJSONError(
 	w http.ResponseWriter,
@@ -333,7 +333,7 @@ func writeJSONError(
 //   - the level string (which may be empty if the body is empty);
 //   - an error for client failures (bad JSON, etc.), which callers
 //     translate into HTTP 400.
-func (h *HTTPHandler) readLevelFromBody(r *http.Request) (string, error) {
+func (h *Handler) readLevelFromBody(r *http.Request) (string, error) {
 	if r.Body == nil {
 		return "", nil
 	}
@@ -358,7 +358,7 @@ func (h *HTTPHandler) readLevelFromBody(r *http.Request) (string, error) {
 }
 
 // readLevelFromJSON reads {"<ParamName>":"<level>"} from a JSON body.
-func (h *HTTPHandler) readLevelFromJSON(r io.Reader) (string, error) {
+func (h *Handler) readLevelFromJSON(r io.Reader) (string, error) {
 	if h.ParamName == "" {
 		return "", fmt.Errorf("param name is empty for JSON body")
 	}
