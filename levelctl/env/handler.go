@@ -148,21 +148,34 @@ func NewHandler(th level.Threshold, opts ...Option) *Handler {
 // Apply reads the configured environment variable, interprets its value
 // as a log level, and updates the underlying Threshold accordingly.
 //
-// Behavior summary:
+// The method first verifies that the Handler has a non-nil Level. If Level
+// is nil, Apply immediately returns an error, since there is no target to
+// update.
 //
-//   - If Level is nil, Apply returns an error.
-//   - If the environment variable is unset or empty:
-//     If Required is true -> return error.
-//   - Else if HasDefault is true -> set Threshold to DefaultLevel.
-//   - Else -> leave Threshold unchanged and return nil.
-//   - If the environment variable is set to a non-empty string:
-//     Trim surrounding whitespace.
-//     Parse via level.Parse.
-//   - On success -> set Threshold to the parsed level.
-//   - On parse error -> return error.
+// Next, Apply determines the effective environment variable name. If VarName
+// is non-empty, it is used as-is; otherwise, DefaultVarName is used. The
+// variable is then looked up using the configured Lookup function, or
+// os.LookupEnv if no custom lookup is provided. The resulting value is
+// trimmed of leading and trailing whitespace.
 //
-// Apply is safe to call multiple times; each call re-evaluates the current
-// environment.
+// If the environment variable is not set at all, or if its trimmed value is
+// an empty string, the behavior depends on the Handler's configuration:
+//
+//   - If Required is true, Apply returns an error indicating that the
+//     variable is missing.
+//   - If Required is false and HasDefault is true, Apply sets the Threshold
+//     to DefaultLevel and returns nil.
+//   - If Required is false and HasDefault is false, Apply leaves the
+//     Threshold unchanged and returns nil.
+//
+// If the environment variable is present and its trimmed value is non-empty,
+// Apply attempts to parse it as a log level using level.Parse. If parsing
+// fails, Apply returns an error describing the invalid value. If parsing
+// succeeds, the parsed level is written into the underlying Threshold via
+// SetLevel, and Apply returns nil.
+//
+// Apply is safe to call multiple times; each invocation re-evaluates the
+// current environment and may adjust the Threshold accordingly.
 func (h *Handler) Apply() error {
 	if h.Level == nil {
 		return fmt.Errorf("env handler: Level Threshold is nil")
