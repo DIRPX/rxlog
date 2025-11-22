@@ -57,12 +57,12 @@
 //
 // Handler implements the following semantics:
 //
-//   - GET  /…  → returns the current level as JSON:
+//   - GET  /…  -> returns the current level as JSON:
 //     { "<fields.Level>": "<level-name>" }.
-//   - HEAD /…  → same headers as GET, but with an empty body.
-//   - POST /…  → parses a new level and updates the threshold.
-//   - PUT  /…  → same as POST; provided for idempotent-style usage.
-//   - PATCH /… → same as POST; provided for convenience.
+//   - HEAD /…  -> same headers as GET, but with an empty body.
+//   - POST /…  -> parses a new level and updates the threshold.
+//   - PUT  /…  -> same as POST; provided for idempotent-style usage.
+//   - PATCH /… -> same as POST; provided for convenience.
 //
 // For mutation methods (POST/PUT/PATCH), the desired log level is resolved
 // in the following order of precedence:
