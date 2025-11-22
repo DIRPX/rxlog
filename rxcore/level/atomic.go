@@ -45,6 +45,10 @@ type AtomicLevel struct {
 	l *atomic.Int32
 }
 
+// compile-time check
+var _ level.Enabler = (*AtomicLevel)(nil)
+var _ level.Threshold = (*AtomicLevel)(nil)
+
 // NewAtomicLevel constructs an AtomicLevel with the default threshold of Info.
 //
 // The returned value is fully initialized, safe for immediate use, and may be
@@ -139,6 +143,37 @@ func (lvl *AtomicLevel) SetLevel(l level.Level) {
 	}
 
 	lvl.l.Store(int32(l))
+}
+
+// SetLevelString parses the given textual level and updates the current
+// threshold to the parsed value.
+//
+// The format and accepted synonyms are the same as for level.Parse.
+// On error, the AtomicLevel is left unchanged and a non-nil error is
+// returned.
+//
+// This helper is convenient for configuration-driven use cases
+// (environment variables, CLI flags, HTTP handlers, file-based config).
+func (lvl *AtomicLevel) SetLevelString(s string) error {
+	parsed, err := level.Parse(s)
+	if err != nil {
+		return err
+	}
+	lvl.SetLevel(parsed)
+	return nil
+}
+
+// MustSetLevelString is a convenience helper that calls SetLevelString
+// and panics on error.
+//
+// It is suitable for static initialization code where the level string
+// is hard-coded and any failure indicates a programmer error or a
+// misconfigured build. It MUST NOT be used with untrusted or user-
+// provided input.
+func (lvl *AtomicLevel) MustSetLevelString(s string) {
+	if err := lvl.SetLevelString(s); err != nil {
+		panic(fmt.Errorf("AtomicLevel.MustSetLevelString(%q): %w", s, err))
+	}
 }
 
 // Enabled reports whether events at the candidate level l should be emitted
