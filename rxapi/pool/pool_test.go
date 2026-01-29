@@ -17,6 +17,7 @@
 package pool_test
 
 import (
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -290,5 +291,104 @@ func BenchmarkPool_GetModifyPut(b *testing.B) {
 		d.Value = i
 		d.Name = "benchmark"
 		p.Put(d)
+	}
+}
+
+// TestPool_ReusesObjects_WithGCDisabled verifies that objects are actually
+// reused from the pool (not created fresh each time) by disabling GC and
+// putting many objects with identifiable content.
+//
+// This test is inspired by zap's pool tests which disable GC to prevent
+// sync.Pool from discarding objects during the test.
+func TestPool_ReusesObjects_WithGCDisabled(t *testing.T) {
+	// Disable GC to avoid the victim cache during the test.
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+
+	type Marker struct {
+		ID string
+	}
+
+	p := pool.New(func() *Marker {
+		return &Marker{ID: "new"}
+	})
+
+	// Probabilistically, 75% of sync.Pool.Put calls will succeed when -race
+	// is enabled (see sync.Pool implementation); attempt to make this
+	// quasi-deterministic by brute force (i.e., put significantly more objects
+	// in the pool than we will need for the test).
+	//
+	// ref: https://cs.opensource.google/go/go/+/refs/tags/go1.20.2:src/sync/pool.go;l=100-103
+	for i := 0; i < 1_000; i++ {
+		p.Put(&Marker{ID: "reused"})
+	}
+
+	// Ensure that we always get back objects with "reused" ID.
+	// Note that this must only run a fraction of the number of times that
+	// Put is called above.
+	for i := 0; i < 10; i++ {
+		func() {
+			m := p.Get()
+			defer p.Put(m)
+			if m.ID != "reused" {
+				t.Errorf("Get() returned object with ID=%q, want %q", m.ID, "reused")
+			}
+		}()
+	}
+
+	// Depool all objects that might be in the pool to ensure it's empty.
+	for i := 0; i < 1_000; i++ {
+		p.Get()
+	}
+
+	// Now that the pool is empty, it should use the factory function
+	// to create a new object.
+	m := p.Get()
+	if m == nil {
+		t.Fatal("Get() returned nil after pool exhaustion")
+	}
+	if m.ID != "new" {
+		t.Errorf("Fresh object has ID=%q, expected %q", m.ID, "new")
+	}
+}
+
+// TestPool_ConcurrentReadWrite runs goroutines that concurrently read and
+// write pooled object fields to detect data races with race detector.
+//
+// This test is inspired by zap's TestNew_Race which specifically tests
+// concurrent field access to catch races that might not show up in
+// simpler Get/Put tests.
+func TestPool_ConcurrentReadWrite(t *testing.T) {
+	type Data struct {
+		Value int
+		Name  string
+	}
+
+	p := pool.New(func() *Data {
+		return &Data{}
+	})
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	// Run a number of goroutines that read and write object fields to
+	// tease out races.
+	for i := 0; i < 1_000; i++ {
+		i := i
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			d := p.Get()
+			defer p.Put(d)
+
+			// Must both read and write object state
+			if d != nil {
+				d.Value = i
+				d.Name = "race test"
+				_ = d.Value
+				_ = d.Name
+			}
+		}()
 	}
 }
