@@ -308,3 +308,133 @@ func TestLevel_IsValid(t *testing.T) {
 		})
 	}
 }
+
+func TestLevel_Enabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		level     level.Level
+		threshold level.Level
+		want      bool
+	}{
+		// Same level is enabled
+		{level.Trace, level.Trace, true},
+		{level.Debug, level.Debug, true},
+		{level.Info, level.Info, true},
+		{level.Warn, level.Warn, true},
+		{level.Error, level.Error, true},
+
+		// Higher levels are enabled
+		{level.Error, level.Info, true},
+		{level.Error, level.Debug, true},
+		{level.Error, level.Trace, true},
+		{level.Warn, level.Info, true},
+		{level.Critical, level.Error, true},
+		{level.Fatal, level.Critical, true},
+
+		// Lower levels are not enabled
+		{level.Debug, level.Info, false},
+		{level.Trace, level.Debug, false},
+		{level.Info, level.Warn, false},
+		{level.Warn, level.Error, false},
+		{level.Error, level.Fatal, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		name := fmt.Sprintf("%s.Enabled(%s)", tt.level, tt.threshold)
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.level.Enabled(tt.threshold)
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLevel_Higher(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		level level.Level
+		other level.Level
+		want  bool
+	}{
+		// Same level is not higher
+		{level.Info, level.Info, false},
+		{level.Debug, level.Debug, false},
+		{level.Error, level.Error, false},
+
+		// Higher levels
+		{level.Error, level.Warn, true},
+		{level.Warn, level.Info, true},
+		{level.Info, level.Debug, true},
+		{level.Debug, level.Trace, true},
+		{level.Fatal, level.Error, true},
+		{level.Critical, level.Warn, true},
+
+		// Lower levels
+		{level.Trace, level.Debug, false},
+		{level.Debug, level.Info, false},
+		{level.Info, level.Warn, false},
+		{level.Warn, level.Error, false},
+		{level.Error, level.Fatal, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		name := fmt.Sprintf("%s.Higher(%s)", tt.level, tt.other)
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.level.Higher(tt.other)
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLevel_Lower(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		level level.Level
+		other level.Level
+		want  bool
+	}{
+		// Same level is not lower
+		{level.Info, level.Info, false},
+		{level.Debug, level.Debug, false},
+		{level.Error, level.Error, false},
+
+		// Lower levels
+		{level.Trace, level.Debug, true},
+		{level.Debug, level.Info, true},
+		{level.Info, level.Warn, true},
+		{level.Warn, level.Error, true},
+		{level.Error, level.Fatal, true},
+
+		// Higher levels
+		{level.Debug, level.Trace, false},
+		{level.Info, level.Debug, false},
+		{level.Warn, level.Info, false},
+		{level.Error, level.Warn, false},
+		{level.Fatal, level.Error, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		name := fmt.Sprintf("%s.Lower(%s)", tt.level, tt.other)
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.level.Lower(tt.other)
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

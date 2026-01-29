@@ -271,3 +271,49 @@ func (l *Level) UnmarshalText(text []byte) error {
 func (l Level) IsValid() bool {
 	return l >= _min && l <= _max
 }
+
+// Enabled reports whether l is enabled at the given threshold.
+//
+// A level is considered enabled if it is greater than or equal to the
+// threshold. For example:
+//
+//	level.Error.Enabled(level.Info)  // true (Error >= Info)
+//	level.Debug.Enabled(level.Info)  // false (Debug < Info)
+//
+// This is a convenience method that encapsulates the standard threshold
+// comparison used throughout rxlog. Callers MAY use this method when
+// implementing custom Enabler logic or when deciding whether to emit a
+// particular log record.
+func (l Level) Enabled(threshold Level) bool {
+	return l >= threshold
+}
+
+// Higher reports whether l represents a more severe level than other.
+//
+// For example:
+//
+//	level.Error.Higher(level.Warn)  // true
+//	level.Debug.Higher(level.Info)  // false
+//	level.Info.Higher(level.Info)   // false
+//
+// This method is useful for comparing two level values when the caller needs
+// to determine relative severity without encoding knowledge of the numeric
+// ordering.
+func (l Level) Higher(other Level) bool {
+	return l > other
+}
+
+// Lower reports whether l represents a less severe level than other.
+//
+// For example:
+//
+//	level.Debug.Lower(level.Info)  // true
+//	level.Error.Lower(level.Warn)  // false
+//	level.Info.Lower(level.Info)   // false
+//
+// This method is useful for comparing two level values when the caller needs
+// to determine relative severity without encoding knowledge of the numeric
+// ordering.
+func (l Level) Lower(other Level) bool {
+	return l < other
+}
