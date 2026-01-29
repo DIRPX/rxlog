@@ -14,22 +14,22 @@
    limitations under the License.
 */
 
-package timeenc_test
+package time_test
 
 import (
 	"testing"
-	"time"
+	stdtime "time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
-	timeenc "dirpx.dev/rxlog/rxcore/chrono/time/encoder"
+	timepkg "dirpx.dev/rxlog/rxcore/chrono/time"
 )
 
 // lEncodeWith is a helper that runs the given layout encoder on a fresh buffer
 // and returns the resulting string.
-func lEncodeWith(t *testing.T, layout string, loc *time.Location, ts time.Time) string {
+func lEncodeWith(t *testing.T, layout string, loc *stdtime.Location, ts stdtime.Time) string {
 	t.Helper()
 
-	enc := timeenc.TimeLayoutEncoder(layout, loc)
+	enc := timepkg.TimeLayoutEncoder(layout, loc)
 	dst := &buffer.Buffer{}
 
 	out := enc(dst, ts)
@@ -47,9 +47,9 @@ func TestTimeLayoutEncoder_PreservesOriginalLocationWhenLocNil(t *testing.T) {
 	t.Helper()
 
 	layout := "2006-01-02T15:04:05Z07:00"
-	loc := time.FixedZone("TEST+02", 2*60*60)
+	loc := stdtime.FixedZone("TEST+02", 2*60*60)
 
-	ts := time.Date(2025, 1, 2, 3, 4, 5, 0, loc)
+	ts := stdtime.Date(2025, 1, 2, 3, 4, 5, 0, loc)
 
 	got := lEncodeWith(t, layout, nil, ts)
 	want := ts.Format(layout)
@@ -66,12 +66,12 @@ func TestTimeLayoutEncoder_UsesProvidedLocation(t *testing.T) {
 	t.Helper()
 
 	layout := "2006-01-02T15:04:05Z07:00"
-	locUTC := time.UTC
-	locPlus3 := time.FixedZone("TEST+03", 3*60*60)
+	locUTC := stdtime.UTC
+	locPlus3 := stdtime.FixedZone("TEST+03", 3*60*60)
 
 	// Start with a timestamp in UTC so that conversion to locPlus3 is visible
 	// in the formatted output (offset changes from +00:00 to +03:00).
-	ts := time.Date(2025, 1, 2, 3, 4, 5, 0, locUTC)
+	ts := stdtime.Date(2025, 1, 2, 3, 4, 5, 0, locUTC)
 
 	got := lEncodeWith(t, layout, locPlus3, ts)
 	want := ts.In(locPlus3).Format(layout)
@@ -88,9 +88,9 @@ func TestTimeLayoutEncoder_AppendsToExistingBuffer(t *testing.T) {
 	t.Helper()
 
 	layout := "2006-01-02 15:04:05"
-	ts := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+	ts := stdtime.Date(2025, 1, 2, 3, 4, 5, 0, stdtime.UTC)
 
-	enc := timeenc.TimeLayoutEncoder(layout, time.UTC)
+	enc := timepkg.TimeLayoutEncoder(layout, stdtime.UTC)
 
 	dst := &buffer.Buffer{}
 	dst.AppendString("prefix:")
@@ -100,7 +100,7 @@ func TestTimeLayoutEncoder_AppendsToExistingBuffer(t *testing.T) {
 		t.Fatal("TimeLayoutEncoder returned nil buffer")
 	}
 
-	wantSuffix := ts.In(time.UTC).Format(layout)
+	wantSuffix := ts.In(stdtime.UTC).Format(layout)
 	got := string(out.Bytes())
 
 	want := "prefix:" + wantSuffix
@@ -115,13 +115,13 @@ func TestTimeLayoutEncoder_AppendsToExistingBuffer(t *testing.T) {
 func TestTimeLayoutEncoder_CanBeReusedAcrossCalls(t *testing.T) {
 	t.Helper()
 
-	layout := time.RFC3339
-	loc := time.UTC
+	layout := stdtime.RFC3339
+	loc := stdtime.UTC
 
-	enc := timeenc.TimeLayoutEncoder(layout, loc)
+	enc := timepkg.TimeLayoutEncoder(layout, loc)
 
-	ts1 := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
-	ts2 := time.Date(2026, 2, 3, 4, 5, 6, 0, time.UTC)
+	ts1 := stdtime.Date(2025, 1, 2, 3, 4, 5, 0, stdtime.UTC)
+	ts2 := stdtime.Date(2026, 2, 3, 4, 5, 6, 0, stdtime.UTC)
 
 	// First call.
 	buf1 := &buffer.Buffer{}

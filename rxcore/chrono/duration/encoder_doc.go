@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-// Package durenc provides the reference set of duration encoders used by rxcore.
+// Package duration provides the reference set of duration encoders used by rxcore.
 //
 // This package builds on top of the rxapi/chrono/duration encoder abstraction
 // and offers a curated collection of concrete Encoder instances, together with
@@ -129,4 +129,4 @@
 // encoders and registry mappings can evolve over time without affecting the
 // minimal API contracts. It is intended as a convenient, opinionated default
 // for duration encoding in rxlog.
-package durenc
+package duration

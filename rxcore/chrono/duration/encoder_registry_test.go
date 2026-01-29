@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package durenc_test
+package duration_test
 
 import (
 	"strings"
@@ -23,7 +23,7 @@ import (
 
 	"dirpx.dev/rxlog/rxapi/buffer"
 	durationapi "dirpx.dev/rxlog/rxapi/chrono/duration"
-	durenc "dirpx.dev/rxlog/rxcore/chrono/duration/encoder"
+	duration "dirpx.dev/rxlog/rxcore/chrono/duration"
 )
 
 // encodeWith is a helper that runs the given encoder on a fresh buffer and
@@ -52,40 +52,40 @@ func TestFromString_KnownNames(t *testing.T) {
 		want durationapi.Encoder
 	}{
 		// String representation.
-		{"string", durenc.StringDurationEncoder},
+		{"string", duration.StringDurationEncoder},
 
 		// Seconds variants.
-		{"seconds", durenc.SecondsDurationEncoder},
-		{"secs", durenc.SecondsDurationEncoder},
-		{"seconds-f64", durenc.SecondsDurationEncoder},
-		{"secs-float64", durenc.SecondsDurationEncoder},
+		{"seconds", duration.SecondsDurationEncoder},
+		{"secs", duration.SecondsDurationEncoder},
+		{"seconds-f64", duration.SecondsDurationEncoder},
+		{"secs-float64", duration.SecondsDurationEncoder},
 
 		// Millis variants.
-		{"millis", durenc.MillisDurationEncoder},
-		{"milliseconds", durenc.MillisDurationEncoder},
-		{"ms", durenc.MillisDurationEncoder},
-		{"millis-int64", durenc.MillisDurationEncoder},
-		{"ms-int64", durenc.MillisDurationEncoder},
+		{"millis", duration.MillisDurationEncoder},
+		{"milliseconds", duration.MillisDurationEncoder},
+		{"ms", duration.MillisDurationEncoder},
+		{"millis-int64", duration.MillisDurationEncoder},
+		{"ms-int64", duration.MillisDurationEncoder},
 
 		// Micros variants (incl. Unicode µs).
-		{"micros", durenc.MicrosDurationEncoder},
-		{"microseconds", durenc.MicrosDurationEncoder},
-		{"µs", durenc.MicrosDurationEncoder},
-		{"micros-int64", durenc.MicrosDurationEncoder},
-		{"microsecs-int64", durenc.MicrosDurationEncoder},
+		{"micros", duration.MicrosDurationEncoder},
+		{"microseconds", duration.MicrosDurationEncoder},
+		{"µs", duration.MicrosDurationEncoder},
+		{"micros-int64", duration.MicrosDurationEncoder},
+		{"microsecs-int64", duration.MicrosDurationEncoder},
 
 		// Nanos variants.
-		{"nanos", durenc.NanosDurationEncoder},
-		{"nanoseconds", durenc.NanosDurationEncoder},
-		{"ns", durenc.NanosDurationEncoder},
-		{"nanos-int64", durenc.NanosDurationEncoder},
-		{"nanosecs-int64", durenc.NanosDurationEncoder},
+		{"nanos", duration.NanosDurationEncoder},
+		{"nanoseconds", duration.NanosDurationEncoder},
+		{"ns", duration.NanosDurationEncoder},
+		{"nanos-int64", duration.NanosDurationEncoder},
+		{"nanosecs-int64", duration.NanosDurationEncoder},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			gotEnc, err := durenc.FromString(tt.name)
+			gotEnc, err := duration.FromString(tt.name)
 			if err != nil {
 				t.Fatalf("FromString(%q) returned error: %v", tt.name, err)
 			}
@@ -107,7 +107,7 @@ func TestFromString_KnownNames(t *testing.T) {
 func TestFromString_UnknownName(t *testing.T) {
 	const name = "no-such-encoder"
 
-	enc, err := durenc.FromString(name)
+	enc, err := duration.FromString(name)
 	if err == nil {
 		t.Fatalf("FromString(%q) returned nil error, want non-nil", name)
 	}
@@ -128,7 +128,7 @@ func TestMustFromString_Succeeds(t *testing.T) {
 		}
 	}()
 
-	enc := durenc.MustFromString("string")
+	enc := duration.MustFromString("string")
 	if enc == nil {
 		t.Fatalf("MustFromString(\"string\") returned nil encoder")
 	}
@@ -136,7 +136,7 @@ func TestMustFromString_Succeeds(t *testing.T) {
 	// Sanity-check: encoder should behave like StringDurationEncoder.
 	d := 250 * time.Millisecond
 	got := encodeWith(t, enc, d)
-	want := encodeWith(t, durenc.StringDurationEncoder, d)
+	want := encodeWith(t, duration.StringDurationEncoder, d)
 	if got != want {
 		t.Fatalf("MustFromString(\"string\") encoder output = %q, want %q", got, want)
 	}
@@ -153,7 +153,7 @@ func TestMustFromString_PanicsOnUnknown(t *testing.T) {
 		}
 	}()
 
-	_ = durenc.MustFromString(name)
+	_ = duration.MustFromString(name)
 }
 
 // TestRegister_AddAndOverride verifies that Register can both install a new
@@ -178,8 +178,8 @@ func TestRegister_AddAndOverride(t *testing.T) {
 	d := 1234 * time.Millisecond
 
 	// First registration: name -> e1.
-	durenc.Register(name, e1)
-	enc1, err := durenc.FromString(name)
+	duration.Register(name, e1)
+	enc1, err := duration.FromString(name)
 	if err != nil {
 		t.Fatalf("FromString(%q) after first Register returned error: %v", name, err)
 	}
@@ -188,8 +188,8 @@ func TestRegister_AddAndOverride(t *testing.T) {
 	}
 
 	// Override registration: name -> e2.
-	durenc.Register(name, e2)
-	enc2, err := durenc.FromString(name)
+	duration.Register(name, e2)
+	enc2, err := duration.FromString(name)
 	if err != nil {
 		t.Fatalf("FromString(%q) after override returned error: %v", name, err)
 	}

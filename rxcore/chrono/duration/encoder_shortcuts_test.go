@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package durenc_test
+package duration_test
 
 import (
 	"strconv"
@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
-	durenc "dirpx.dev/rxlog/rxcore/chrono/duration/encoder"
+	duration "dirpx.dev/rxlog/rxcore/chrono/duration"
 )
 
 func TestSecondsDurationEncoder_AppendsSecondsAsFloat(t *testing.T) {
@@ -34,7 +34,7 @@ func TestSecondsDurationEncoder_AppendsSecondsAsFloat(t *testing.T) {
 	dst := &buffer.Buffer{}
 	dst.AppendString("prefix:")
 
-	out := durenc.SecondsDurationEncoder(dst, d)
+	out := duration.SecondsDurationEncoder(dst, d)
 	if out == nil {
 		t.Fatalf("SecondsDurationEncoder returned nil buffer")
 	}
@@ -69,7 +69,7 @@ func TestMillisDurationEncoder_AppendsMillisAsInt(t *testing.T) {
 	dst := &buffer.Buffer{}
 	dst.AppendString("m:")
 
-	out := durenc.MillisDurationEncoder(dst, d)
+	out := duration.MillisDurationEncoder(dst, d)
 	if out == nil {
 		t.Fatalf("MillisDurationEncoder returned nil buffer")
 	}
@@ -94,7 +94,7 @@ func TestMicrosDurationEncoder_AppendsMicrosAsInt(t *testing.T) {
 	dst := &buffer.Buffer{}
 	dst.AppendString("u:")
 
-	out := durenc.MicrosDurationEncoder(dst, d)
+	out := duration.MicrosDurationEncoder(dst, d)
 	if out == nil {
 		t.Fatalf("MicrosDurationEncoder returned nil buffer")
 	}
@@ -119,7 +119,7 @@ func TestNanosDurationEncoder_AppendsNanosAsInt(t *testing.T) {
 	dst := &buffer.Buffer{}
 	dst.AppendString("n:")
 
-	out := durenc.NanosDurationEncoder(dst, d)
+	out := duration.NanosDurationEncoder(dst, d)
 	if out == nil {
 		t.Fatalf("NanosDurationEncoder returned nil buffer")
 	}
@@ -144,7 +144,7 @@ func TestStringDurationEncoder_AppendsDurationString(t *testing.T) {
 	dst := &buffer.Buffer{}
 	dst.AppendString("s:")
 
-	out := durenc.StringDurationEncoder(dst, d)
+	out := duration.StringDurationEncoder(dst, d)
 	if out == nil {
 		t.Fatalf("StringDurationEncoder returned nil buffer")
 	}

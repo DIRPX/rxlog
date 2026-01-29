@@ -52,7 +52,7 @@
 //
 // The rxapi/chrono/time package defines the core Encoder function type:
 //
-//   - an Encoder takes a *buffer.Buffer and a time.Time and returns the buffer
+//   - an Encoder takes a *buffer.Buffer and a stdtime.Time and returns the buffer
 //     that now holds the encoded timestamp.
 //
 // This rxcore package:
@@ -73,7 +73,7 @@
 //
 // # Layouts and the layout subpackage
 //
-// The encoder package uses layout strings compatible with time.Time.Format to
+// The encoder package uses layout strings compatible with stdtime.Time.Format to
 // implement its textual encoders. To avoid scattering literal layout strings
 // throughout the codebase, common layouts are centralized in:
 //
@@ -141,4 +141,4 @@
 // encoders and registry mappings can evolve over time without affecting the
 // minimal API contracts. It is intended as a convenient, opinionated default
 // rather than a hard requirement for all rxlog integrations.
-package timeenc
+package time

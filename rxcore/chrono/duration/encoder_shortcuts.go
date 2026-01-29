@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package durenc
+package duration
 
 import (
 	"time"

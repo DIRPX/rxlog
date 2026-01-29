@@ -14,16 +14,16 @@
    limitations under the License.
 */
 
-package timeenc
+package time
 
 import (
-	"time"
+	stdtime "time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
 	time2 "dirpx.dev/rxlog/rxapi/chrono/time"
 )
 
-// TimeLayoutEncoder constructs a time encoder that formats time.Time values
+// TimeLayoutEncoder constructs a time encoder that formats stdtime.Time values
 // using the specified layout and optional location.
 //
 // The returned Encoder applies the following rules:
@@ -40,8 +40,8 @@ import (
 // as callers respect the usual buffer ownership rules (that is, each call
 // MUST provide a *buffer.Buffer that is not shared concurrently). The closure
 // itself captures only layout and loc, which are treated as immutable.
-func TimeLayoutEncoder(layout string, loc *time.Location) time2.Encoder {
-	return func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+func TimeLayoutEncoder(layout string, loc *stdtime.Location) time2.Encoder {
+	return func(dst *buffer.Buffer, t stdtime.Time) *buffer.Buffer {
 		if loc != nil {
 			t = t.In(loc)
 		}

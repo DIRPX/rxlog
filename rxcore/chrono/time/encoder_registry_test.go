@@ -14,21 +14,21 @@
    limitations under the License.
 */
 
-package timeenc_test
+package time_test
 
 import (
 	"strings"
 	"testing"
-	"time"
+	stdtime "time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
 	timeapi "dirpx.dev/rxlog/rxapi/chrono/time"
-	timeenc "dirpx.dev/rxlog/rxcore/chrono/time/encoder"
+	timepkg "dirpx.dev/rxlog/rxcore/chrono/time"
 )
 
 // regEncodeWith is a helper that runs the given time encoder on a fresh buffer
 // and returns its textual representation.
-func regEncodeWith(t *testing.T, enc timeapi.Encoder, ts time.Time) string {
+func regEncodeWith(t *testing.T, enc timeapi.Encoder, ts stdtime.Time) string {
 	t.Helper()
 
 	dst := &buffer.Buffer{}
@@ -46,50 +46,50 @@ func TestFromString_KnownNames(t *testing.T) {
 	t.Helper()
 
 	// Fixed timestamp to make all encodings deterministic.
-	ts := time.Date(2025, 1, 2, 3, 4, 5, 123_456_789, time.FixedZone("TEST+03", 3*60*60))
+	ts := stdtime.Date(2025, 1, 2, 3, 4, 5, 123_456_789, stdtime.FixedZone("TEST+03", 3*60*60))
 
 	tests := []struct {
 		name string
 		want timeapi.Encoder
 	}{
 		// ISO 8601–style layouts.
-		{"iso8601", timeenc.ISO8601MillisTimeEncoder},
-		{"iso8601-millis", timeenc.ISO8601MillisTimeEncoder},
-		{"iso8601-sec", timeenc.ISO8601SecondsTimeEncoder},
-		{"iso8601-seconds", timeenc.ISO8601SecondsTimeEncoder},
-		{"iso8601-micros", timeenc.ISO8601MicrosTimeEncoder},
-		{"iso8601-nanos", timeenc.ISO8601NanosTimeEncoder},
+		{"iso8601", timepkg.ISO8601MillisTimeEncoder},
+		{"iso8601-millis", timepkg.ISO8601MillisTimeEncoder},
+		{"iso8601-sec", timepkg.ISO8601SecondsTimeEncoder},
+		{"iso8601-seconds", timepkg.ISO8601SecondsTimeEncoder},
+		{"iso8601-micros", timepkg.ISO8601MicrosTimeEncoder},
+		{"iso8601-nanos", timepkg.ISO8601NanosTimeEncoder},
 
 		// RFC 3339 and related.
-		{"rfc3339", timeenc.RFC3339TimeEncoder},
-		{"rfc3339-nano", timeenc.RFC3339NanoTimeEncoder},
-		{"rfc1123", timeenc.RFC1123TimeEncoder},
-		{"rfc1123z", timeenc.RFC1123ZTimeEncoder},
-		{"rfc822", timeenc.RFC822TimeEncoder},
-		{"rfc822z", timeenc.RFC822ZTimeEncoder},
-		{"rfc850", timeenc.RFC850TimeEncoder},
+		{"rfc3339", timepkg.RFC3339TimeEncoder},
+		{"rfc3339-nano", timepkg.RFC3339NanoTimeEncoder},
+		{"rfc1123", timepkg.RFC1123TimeEncoder},
+		{"rfc1123z", timepkg.RFC1123ZTimeEncoder},
+		{"rfc822", timepkg.RFC822TimeEncoder},
+		{"rfc822z", timepkg.RFC822ZTimeEncoder},
+		{"rfc850", timepkg.RFC850TimeEncoder},
 
 		// Other textual layouts.
-		{"ansic", timeenc.ANSICTimeEncoder},
-		{"unixdate", timeenc.UnixDateTimeEncoder},
-		{"kitchen", timeenc.KitchenTimeEncoder},
-		{"stamp", timeenc.StampTimeEncoder},
-		{"stamp-millis", timeenc.StampMilliTimeEncoder},
-		{"stamp-micros", timeenc.StampMicroTimeEncoder},
-		{"stamp-nanos", timeenc.StampNanoTimeEncoder},
+		{"ansic", timepkg.ANSICTimeEncoder},
+		{"unixdate", timepkg.UnixDateTimeEncoder},
+		{"kitchen", timepkg.KitchenTimeEncoder},
+		{"stamp", timepkg.StampTimeEncoder},
+		{"stamp-millis", timepkg.StampMilliTimeEncoder},
+		{"stamp-micros", timepkg.StampMicroTimeEncoder},
+		{"stamp-nanos", timepkg.StampNanoTimeEncoder},
 
 		// Date / time-only.
-		{"date", timeenc.DateOnlyTimeEncoder},
-		{"time", timeenc.TimeOnlyTimeEncoder},
-		{"time-millis", timeenc.TimeMillisOnlyTimeEncoder},
+		{"date", timepkg.DateOnlyTimeEncoder},
+		{"time", timepkg.TimeOnlyTimeEncoder},
+		{"time-millis", timepkg.TimeMillisOnlyTimeEncoder},
 
 		// Unix epoch representations.
-		{"unix", timeenc.UnixSecondsTimeEncoder},
-		{"unix-seconds", timeenc.UnixSecondsTimeEncoder},
-		{"unix-secs", timeenc.UnixSecondsTimeEncoder},
-		{"unix-millis", timeenc.UnixMillisTimeEncoder},
-		{"unix-micros", timeenc.UnixMicrosTimeEncoder},
-		{"unix-nanos", timeenc.UnixNanosTimeEncoder},
+		{"unix", timepkg.UnixSecondsTimeEncoder},
+		{"unix-seconds", timepkg.UnixSecondsTimeEncoder},
+		{"unix-secs", timepkg.UnixSecondsTimeEncoder},
+		{"unix-millis", timepkg.UnixMillisTimeEncoder},
+		{"unix-micros", timepkg.UnixMicrosTimeEncoder},
+		{"unix-nanos", timepkg.UnixNanosTimeEncoder},
 	}
 
 	for _, tt := range tests {
@@ -97,7 +97,7 @@ func TestFromString_KnownNames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
-			gotEnc, err := timeenc.FromString(tt.name)
+			gotEnc, err := timepkg.FromString(tt.name)
 			if err != nil {
 				t.Fatalf("FromString(%q) returned error: %v", tt.name, err)
 			}
@@ -121,7 +121,7 @@ func TestFromString_UnknownName(t *testing.T) {
 
 	const name = "no-such-time-encoder"
 
-	enc, err := timeenc.FromString(name)
+	enc, err := timepkg.FromString(name)
 	if err == nil {
 		t.Fatalf("FromString(%q) returned nil error, want non-nil", name)
 	}
@@ -144,15 +144,15 @@ func TestMustFromString_Succeeds(t *testing.T) {
 		}
 	}()
 
-	enc := timeenc.MustFromString("rfc3339")
+	enc := timepkg.MustFromString("rfc3339")
 	if enc == nil {
 		t.Fatalf("MustFromString(\"rfc3339\") returned nil encoder")
 	}
 
 	// Sanity-check behavior.
-	ts := time.Now()
+	ts := stdtime.Now()
 	got := regEncodeWith(t, enc, ts)
-	want := regEncodeWith(t, timeenc.RFC3339TimeEncoder, ts)
+	want := regEncodeWith(t, timepkg.RFC3339TimeEncoder, ts)
 	if got != want {
 		t.Fatalf("MustFromString(\"rfc3339\") encoder output = %q, want %q", got, want)
 	}
@@ -171,7 +171,7 @@ func TestMustFromString_PanicsOnUnknown(t *testing.T) {
 		}
 	}()
 
-	_ = timeenc.MustFromString(name)
+	_ = timepkg.MustFromString(name)
 }
 
 // TestRegister_AddAndOverride verifies that Register can add encoders under
@@ -182,24 +182,24 @@ func TestRegister_AddAndOverride(t *testing.T) {
 	const name = "custom-test-time-encoder"
 
 	// e1: prefix "e1:" + Unix seconds.
-	e1 := func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	e1 := func(dst *buffer.Buffer, t stdtime.Time) *buffer.Buffer {
 		dst.AppendString("e1:")
 		dst.AppendInt64(t.Unix())
 		return dst
 	}
 
 	// e2: prefix "e2:" + Unix milliseconds.
-	e2 := func(dst *buffer.Buffer, t time.Time) *buffer.Buffer {
+	e2 := func(dst *buffer.Buffer, t stdtime.Time) *buffer.Buffer {
 		dst.AppendString("e2:")
 		dst.AppendInt64(t.UnixMilli())
 		return dst
 	}
 
-	ts := time.Date(2025, 5, 6, 7, 8, 9, 0, time.UTC)
+	ts := stdtime.Date(2025, 5, 6, 7, 8, 9, 0, stdtime.UTC)
 
 	// First registration.
-	timeenc.Register(name, e1)
-	enc1, err := timeenc.FromString(name)
+	timepkg.Register(name, e1)
+	enc1, err := timepkg.FromString(name)
 	if err != nil {
 		t.Fatalf("FromString(%q) after first Register returned error: %v", name, err)
 	}
@@ -210,8 +210,8 @@ func TestRegister_AddAndOverride(t *testing.T) {
 	}
 
 	// Override registration.
-	timeenc.Register(name, e2)
-	enc2, err := timeenc.FromString(name)
+	timepkg.Register(name, e2)
+	enc2, err := timepkg.FromString(name)
 	if err != nil {
 		t.Fatalf("FromString(%q) after override returned error: %v", name, err)
 	}

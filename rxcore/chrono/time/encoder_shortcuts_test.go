@@ -14,18 +14,18 @@
    limitations under the License.
 */
 
-package timeenc_test
+package time_test
 
 import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
+	stdtime "time"
 
 	"dirpx.dev/rxlog/rxapi/buffer"
 	timeapi "dirpx.dev/rxlog/rxapi/chrono/time"
-	timeenc "dirpx.dev/rxlog/rxcore/chrono/time/encoder"
-	"dirpx.dev/rxlog/rxcore/chrono/time/encoder/layout"
+	timepkg "dirpx.dev/rxlog/rxcore/chrono/time"
+	"dirpx.dev/rxlog/rxcore/chrono/time/layout"
 )
 
 // TestTextEncoders_LayoutsAndLocations verifies that all layout-based
@@ -35,46 +35,46 @@ func TestTextEncoders_LayoutsAndLocations(t *testing.T) {
 	t.Helper()
 
 	// Fixed timestamp so that all formats are deterministic.
-	ts := time.Date(2025, 1, 2, 3, 4, 5, 123_456_789, time.FixedZone("TEST+03", 3*60*60))
+	ts := stdtime.Date(2025, 1, 2, 3, 4, 5, 123_456_789, stdtime.FixedZone("TEST+03", 3*60*60))
 
 	tests := []struct {
 		name   string
 		enc    timeapi.Encoder
 		layout string
-		loc    *time.Location // nil means "preserve ts.Location"
+		loc    *stdtime.Location // nil means "preserve ts.Location"
 	}{
 		// ISO 8601 variants (UTC).
-		{"iso8601-seconds", timeenc.ISO8601SecondsTimeEncoder, layout.ISO8601Seconds, time.UTC},
-		{"iso8601-millis", timeenc.ISO8601MillisTimeEncoder, layout.ISO8601Millis, time.UTC},
-		{"iso8601-micros", timeenc.ISO8601MicrosTimeEncoder, layout.ISO8601Micros, time.UTC},
-		{"iso8601-nanos", timeenc.ISO8601NanosTimeEncoder, layout.ISO8601Nanos, time.UTC},
+		{"iso8601-seconds", timepkg.ISO8601SecondsTimeEncoder, layout.ISO8601Seconds, stdtime.UTC},
+		{"iso8601-millis", timepkg.ISO8601MillisTimeEncoder, layout.ISO8601Millis, stdtime.UTC},
+		{"iso8601-micros", timepkg.ISO8601MicrosTimeEncoder, layout.ISO8601Micros, stdtime.UTC},
+		{"iso8601-nanos", timepkg.ISO8601NanosTimeEncoder, layout.ISO8601Nanos, stdtime.UTC},
 
 		// RFC 3339 family (UTC).
-		{"rfc3339", timeenc.RFC3339TimeEncoder, layout.RFC3339, time.UTC},
-		{"rfc3339-nano", timeenc.RFC3339NanoTimeEncoder, layout.RFC3339Nano, time.UTC},
+		{"rfc3339", timepkg.RFC3339TimeEncoder, layout.RFC3339, stdtime.UTC},
+		{"rfc3339-nano", timepkg.RFC3339NanoTimeEncoder, layout.RFC3339Nano, stdtime.UTC},
 
 		// Other textual layouts.
-		{"rfc1123", timeenc.RFC1123TimeEncoder, layout.RFC1123, time.UTC},
-		{"rfc1123z", timeenc.RFC1123ZTimeEncoder, layout.RFC1123Z, time.UTC},
-		{"rfc822", timeenc.RFC822TimeEncoder, layout.RFC822, time.UTC},
-		{"rfc822z", timeenc.RFC822ZTimeEncoder, layout.RFC822Z, time.UTC},
-		{"rfc850", timeenc.RFC850TimeEncoder, layout.RFC850, time.UTC},
+		{"rfc1123", timepkg.RFC1123TimeEncoder, layout.RFC1123, stdtime.UTC},
+		{"rfc1123z", timepkg.RFC1123ZTimeEncoder, layout.RFC1123Z, stdtime.UTC},
+		{"rfc822", timepkg.RFC822TimeEncoder, layout.RFC822, stdtime.UTC},
+		{"rfc822z", timepkg.RFC822ZTimeEncoder, layout.RFC822Z, stdtime.UTC},
+		{"rfc850", timepkg.RFC850TimeEncoder, layout.RFC850, stdtime.UTC},
 
-		// ANSIC / UnixDate use time.Local.
-		{"ansic", timeenc.ANSICTimeEncoder, layout.ANSIC, time.Local},
-		{"unixdate", timeenc.UnixDateTimeEncoder, layout.UnixDate, time.Local},
+		// ANSIC / UnixDate use stdtime.Local.
+		{"ansic", timepkg.ANSICTimeEncoder, layout.ANSIC, stdtime.Local},
+		{"unixdate", timepkg.UnixDateTimeEncoder, layout.UnixDate, stdtime.Local},
 
 		// "Nil location" variants preserve ts.Location.
-		{"kitchen", timeenc.KitchenTimeEncoder, layout.Kitchen, nil},
-		{"stamp", timeenc.StampTimeEncoder, layout.Stamp, nil},
-		{"stamp-milli", timeenc.StampMilliTimeEncoder, layout.StampMilli, nil},
-		{"stamp-micro", timeenc.StampMicroTimeEncoder, layout.StampMicro, nil},
-		{"stamp-nano", timeenc.StampNanoTimeEncoder, layout.StampNano, nil},
+		{"kitchen", timepkg.KitchenTimeEncoder, layout.Kitchen, nil},
+		{"stamp", timepkg.StampTimeEncoder, layout.Stamp, nil},
+		{"stamp-milli", timepkg.StampMilliTimeEncoder, layout.StampMilli, nil},
+		{"stamp-micro", timepkg.StampMicroTimeEncoder, layout.StampMicro, nil},
+		{"stamp-nano", timepkg.StampNanoTimeEncoder, layout.StampNano, nil},
 
 		// Date / time-only encoders (UTC).
-		{"date-only", timeenc.DateOnlyTimeEncoder, layout.Date, time.UTC},
-		{"time-only", timeenc.TimeOnlyTimeEncoder, layout.Time, time.UTC},
-		{"time-millis-only", timeenc.TimeMillisOnlyTimeEncoder, layout.TimeMillis, time.UTC},
+		{"date-only", timepkg.DateOnlyTimeEncoder, layout.Date, stdtime.UTC},
+		{"time-only", timepkg.TimeOnlyTimeEncoder, layout.Time, stdtime.UTC},
+		{"time-millis-only", timepkg.TimeMillisOnlyTimeEncoder, layout.TimeMillis, stdtime.UTC},
 	}
 
 	for _, tt := range tests {
@@ -111,17 +111,17 @@ func TestUnixEpochEncoders_Values(t *testing.T) {
 	t.Helper()
 
 	// Non-trivial timestamp so all units differ.
-	ts := time.Unix(1672531200, 123_456_789) // seconds + nanos
+	ts := stdtime.Unix(1672531200, 123_456_789) // seconds + nanos
 
 	tests := []struct {
 		name string
 		enc  timeapi.Encoder
 		want int64
 	}{
-		{"unix-seconds", timeenc.UnixSecondsTimeEncoder, ts.Unix()},
-		{"unix-millis", timeenc.UnixMillisTimeEncoder, ts.UnixMilli()},
-		{"unix-micros", timeenc.UnixMicrosTimeEncoder, ts.UnixMicro()},
-		{"unix-nanos", timeenc.UnixNanosTimeEncoder, ts.UnixNano()},
+		{"unix-seconds", timepkg.UnixSecondsTimeEncoder, ts.Unix()},
+		{"unix-millis", timepkg.UnixMillisTimeEncoder, ts.UnixMilli()},
+		{"unix-micros", timepkg.UnixMicrosTimeEncoder, ts.UnixMicro()},
+		{"unix-nanos", timepkg.UnixNanosTimeEncoder, ts.UnixNano()},
 	}
 
 	for _, tt := range tests {
@@ -153,12 +153,12 @@ func TestUnixEpochEncoders_Values(t *testing.T) {
 func TestUnixSecondsTimeEncoder_AppendsToExistingBuffer(t *testing.T) {
 	t.Helper()
 
-	ts := time.Unix(1000, 0) // 1000 seconds after epoch
+	ts := stdtime.Unix(1000, 0) // 1000 seconds after epoch
 
 	dst := &buffer.Buffer{}
 	dst.AppendString("prefix:")
 
-	out := timeenc.UnixSecondsTimeEncoder(dst, ts)
+	out := timepkg.UnixSecondsTimeEncoder(dst, ts)
 	if out == nil {
 		t.Fatal("UnixSecondsTimeEncoder returned nil buffer")
 	}
