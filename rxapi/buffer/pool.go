@@ -51,10 +51,30 @@ type Pool struct {
 // detail, but callers MAY assume that buffers obtained from this Pool are
 // immediately ready for writing without further initialization.
 func NewPool() Pool {
+	return NewPoolWithCapacity(Size)
+}
+
+// NewPoolWithCapacity constructs a new Pool that allocates *Buffer instances
+// with the specified initial capacity.
+//
+// This constructor is identical to NewPool except that it allows the caller
+// to specify a custom initial capacity for buffers created by the pool's
+// factory function. This is useful for workloads that consistently produce
+// buffers of a known size class and want to avoid reallocations.
+//
+// The capacity parameter specifies the initial capacity (in bytes) of the
+// underlying byte slice for each newly allocated buffer. The slice will
+// start with length 0, allowing immediate writes up to capacity without
+// reallocation.
+//
+// Most callers SHOULD use NewPool with the default Size. NewPoolWithCapacity
+// is provided for advanced use cases such as size-bucketed pooling strategies
+// where different pools manage different buffer size classes.
+func NewPoolWithCapacity(capacity int) Pool {
 	return Pool{
 		p: pool.New(func() *Buffer {
 			return &Buffer{
-				data: make([]byte, 0, Size),
+				data: make([]byte, 0, capacity),
 			}
 		}),
 	}

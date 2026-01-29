@@ -16,6 +16,8 @@
 
 package core
 
+import "dirpx.dev/rxlog/rxapi/writer"
+
 // CheckedEntry represents a pre-filtered log entry that has been validated
 // against one or more Cores and is ready to be written.
 //
@@ -44,6 +46,19 @@ type CheckedEntry struct {
 	// or layout. Logger internals that manipulate cores MUST ensure that the
 	// slice is not modified concurrently.
 	cores []Core
+
+	// ErrorOutput is an optional sink used to report internal logging errors.
+	//
+	// The logging pipeline MAY use ErrorOutput to report:
+	//   - unsafe reuse of a dirty CheckedEntry (double-Write scenarios),
+	//   - errors returned by Core.Write implementations.
+	//
+	// When non-nil, ErrorOutput is expected to implement writer.WriteSyncer
+	// interface.
+	//
+	// If ErrorOutput is nil, internal errors SHOULD be silently ignored to
+	// avoid infinite recursion or log-spam loops.
+	ErrorOutput writer.WriteSyncer
 
 	// dirty tracks whether this CheckedEntry has already been consumed
 	// (i.e., written to its associated cores) at least once.

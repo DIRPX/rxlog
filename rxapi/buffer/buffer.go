@@ -61,6 +61,32 @@ type Buffer struct {
 // the expected buffer contract used by the rest of the logging pipeline.
 var _ Interface = (*Buffer)(nil)
 
+// NewWithPool creates a new Buffer with the specified initial capacity and
+// pool reference.
+//
+// This constructor is intended for use by internal pooling implementations
+// that need to create buffers with custom pool bindings. Most callers SHOULD
+// use a pool's Get() method rather than calling NewWithPool directly.
+//
+// The capacity parameter specifies the initial capacity of the underlying
+// byte slice. The actual capacity MAY be larger due to allocator rounding.
+//
+// The pool parameter MUST NOT be nil and MUST remain valid for the lifetime
+// of the buffer. When the buffer is freed via Free(), it will be returned
+// to this pool.
+//
+// Example (internal pool implementation):
+//
+//	func (p *MyPool) newBuffer() *buffer.Buffer {
+//	    return buffer.NewWithPool(p, 512)
+//	}
+func NewWithPool(pool Pool, capacity int) *Buffer {
+	return &Buffer{
+		data: make([]byte, 0, capacity),
+		pool: pool,
+	}
+}
+
 // Write appends the contents of p to the buffer, growing the underlying slice
 // as needed, and reports the number of bytes written.
 //
