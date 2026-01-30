@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package rxcore
+package rxlog
 
 import (
 	"dirpx.dev/rxlog/rxapi/caller"
