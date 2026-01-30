@@ -14,23 +14,7 @@
    limitations under the License.
 */
 
-/*
-   Copyright 2025 The DIRPX Authors.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
-package config
+package rxcore
 
 import (
 	"dirpx.dev/rxlog/rxapi/caller"
@@ -53,9 +37,9 @@ import (
 // Unless individual fields specify stricter rules, zero values generally mean
 // that the encoder implementation MAY apply its own default behavior or treat
 // the corresponding feature as disabled. Implementations SHOULD document their
-// concrete defaults, and callers SHOULD refer to NewDefaultConfig (or an
+// concrete defaults, and callers SHOULD refer to NewDefaultEncoderConfig (or an
 // equivalent helper) for recommended production settings.
-type Config struct {
+type EncoderConfig struct {
 	// MessageKey is the field name used to encode the primary log message
 	// text in structured formats.
 	//
@@ -295,7 +279,7 @@ type Config struct {
 	FormatOptions interface{}
 }
 
-// NewDefaultConfig constructs a Config populated with recommended defaults
+// NewDefaultConfig constructs a EncoderConfig populated with recommended defaults
 // suitable for most JSON-style structured encoders in rxcore.
 //
 // The returned configuration:
@@ -327,8 +311,8 @@ type Config struct {
 //
 // Callers MAY treat this as a baseline and override individual fields as
 // needed before constructing a concrete encoder.
-func NewDefaultConfig() Config {
-	return Config{
+func NewDefaultEncoderConfig() EncoderConfig {
+	return EncoderConfig{
 		MessageKey:        fields.Message,
 		LevelKey:          fields.Level,
 		TimeKey:           fields.Timestamp,
@@ -373,10 +357,10 @@ func NewDefaultConfig() Config {
 //     underlying value.
 //
 // This behavior is appropriate for most encoder configuration scenarios,
-// where Config values are treated as immutable templates. Callers that need
+// where EncoderConfig values are treated as immutable templates. Callers that need
 // deep copies of FormatOptions MUST perform such copying themselves before
 // assigning to the cloned configuration.
-func (c Config) Clone() Config {
+func (c EncoderConfig) Clone() EncoderConfig {
 	return c
 }
 
@@ -399,7 +383,7 @@ func (c Config) Clone() Config {
 // indentation logic in multiple places. Callers MAY ignore this helper
 // entirely and implement their own normalization if they require different
 // behavior.
-func (c Config) Normalized() Config {
+func (c EncoderConfig) Normalized() EncoderConfig {
 	if c.PrettyPrint && c.IndentString == "" {
 		// Use a widely expected JSON indentation unit.
 		c.IndentString = "  "
