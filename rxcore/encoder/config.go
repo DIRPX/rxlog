@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package rxlog
+package encoder
 
 import (
 	"dirpx.dev/rxlog/rxapi/caller"
@@ -37,9 +37,9 @@ import (
 // Unless individual fields specify stricter rules, zero values generally mean
 // that the encoder implementation MAY apply its own default behavior or treat
 // the corresponding feature as disabled. Implementations SHOULD document their
-// concrete defaults, and callers SHOULD refer to NewDefaultEncoderConfig (or an
+// concrete defaults, and callers SHOULD refer to NewDefaultConfig (or an
 // equivalent helper) for recommended production settings.
-type EncoderConfig struct {
+type Config struct {
 	// MessageKey is the field name used to encode the primary log message
 	// text in structured formats.
 	//
@@ -207,7 +207,7 @@ type EncoderConfig struct {
 	// or a custom transport protocol).
 	//
 	// When SkipLineEnding is false, the encoder SHOULD append LineEnding after
-	// each entry, subject to the encoder’s documented defaults if LineEnding
+	// each entry, subject to the encoder's documented defaults if LineEnding
 	// itself is empty.
 	SkipLineEnding bool
 
@@ -241,7 +241,7 @@ type EncoderConfig struct {
 	//
 	// When DisableHTMLEscape is false (the typical default), the encoder
 	// SHOULD escape characters such as '&', '<', and '>' as "\u0026",
-	// "\u003c", and "\u003e" respectively, mirroring encoding/json’s default
+	// "\u003c", and "\u003e" respectively, mirroring encoding/json's default
 	// behavior. This can help avoid accidental HTML/script embedding issues
 	// when logs are rendered in browsers or HTML contexts.
 	//
@@ -279,7 +279,7 @@ type EncoderConfig struct {
 	FormatOptions interface{}
 }
 
-// NewDefaultConfig constructs a EncoderConfig populated with recommended defaults
+// NewDefaultConfig constructs a Config populated with recommended defaults
 // suitable for most JSON-style structured encoders in rxcore.
 //
 // The returned configuration:
@@ -311,8 +311,8 @@ type EncoderConfig struct {
 //
 // Callers MAY treat this as a baseline and override individual fields as
 // needed before constructing a concrete encoder.
-func NewDefaultEncoderConfig() EncoderConfig {
-	return EncoderConfig{
+func NewDefaultConfig() Config {
+	return Config{
 		MessageKey:        fields.Message,
 		LevelKey:          fields.Level,
 		TimeKey:           fields.Timestamp,
@@ -357,10 +357,10 @@ func NewDefaultEncoderConfig() EncoderConfig {
 //     underlying value.
 //
 // This behavior is appropriate for most encoder configuration scenarios,
-// where EncoderConfig values are treated as immutable templates. Callers that need
+// where Config values are treated as immutable templates. Callers that need
 // deep copies of FormatOptions MUST perform such copying themselves before
 // assigning to the cloned configuration.
-func (c EncoderConfig) Clone() EncoderConfig {
+func (c Config) Clone() Config {
 	return c
 }
 
@@ -383,7 +383,7 @@ func (c EncoderConfig) Clone() EncoderConfig {
 // indentation logic in multiple places. Callers MAY ignore this helper
 // entirely and implement their own normalization if they require different
 // behavior.
-func (c EncoderConfig) Normalized() EncoderConfig {
+func (c Config) Normalized() Config {
 	if c.PrettyPrint && c.IndentString == "" {
 		// Use a widely expected JSON indentation unit.
 		c.IndentString = "  "
