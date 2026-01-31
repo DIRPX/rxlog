@@ -17,22 +17,20 @@
 package error
 
 import (
-	"fmt"
-
 	errorapi "dirpx.dev/rxlog/rxapi/error"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete error encoders.
+// encoderRegistry holds registered error encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "simple"). Each entry points to one of the predefined
-// Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]errorapi.Encoder{
-	// Simple format: error message from err.Error().
-	"simple": SimpleErrorEncoder,
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[errorapi.Encoder]()
+
+func init() {
+	// Register built-in error encoders.
+	encoderRegistry.Register("simple", SimpleErrorEncoder)
 }
 
 // FromString looks up an error encoder by its symbolic name.
@@ -55,11 +53,7 @@ var registry = map[string]errorapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (errorapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown error encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves an error encoder by name
@@ -72,11 +66,7 @@ func FromString(name string) (errorapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) errorapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides an error encoder under the given symbolic name.
@@ -98,5 +88,5 @@ func MustFromString(name string) errorapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder errorapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }

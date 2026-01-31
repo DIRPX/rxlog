@@ -17,28 +17,25 @@
 package level
 
 import (
-	"fmt"
-
 	levelapi "dirpx.dev/rxlog/rxapi/level"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete level encoders.
+// encoderRegistry holds registered level encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "lowercase", "capital"). Each entry points to one of the
-// predefined Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]levelapi.Encoder{
-	// Lowercase level names (trace, debug, info, notice, warn, error, critical, fatal).
-	"lowercase": LowercaseLevelEncoder,
-	"lower":     LowercaseLevelEncoder,
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[levelapi.Encoder]()
 
-	// Uppercase level names (TRACE, DEBUG, INFO, NOTICE, WARN, ERROR, CRITICAL, FATAL).
-	"capital":   CapitalLevelEncoder,
-	"uppercase": CapitalLevelEncoder,
-	"upper":     CapitalLevelEncoder,
+func init() {
+	// Register built-in level encoders.
+	encoderRegistry.Register("lowercase", LowercaseLevelEncoder)
+	encoderRegistry.Register("lower", LowercaseLevelEncoder)
+
+	encoderRegistry.Register("capital", CapitalLevelEncoder)
+	encoderRegistry.Register("uppercase", CapitalLevelEncoder)
+	encoderRegistry.Register("upper", CapitalLevelEncoder)
 }
 
 // FromString looks up a level encoder by its symbolic name.
@@ -62,11 +59,7 @@ var registry = map[string]levelapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (levelapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown level encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a level encoder by name
@@ -79,11 +72,7 @@ func FromString(name string) (levelapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) levelapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a level encoder under the given symbolic name.
@@ -105,5 +94,5 @@ func MustFromString(name string) levelapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder levelapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }

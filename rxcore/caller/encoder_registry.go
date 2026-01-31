@@ -17,25 +17,21 @@
 package caller
 
 import (
-	"fmt"
-
 	callerapi "dirpx.dev/rxlog/rxapi/caller"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete caller encoders.
+// encoderRegistry holds registered caller encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "short", "full"). Each entry points to one of the predefined
-// Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]callerapi.Encoder{
-	// Short format: base filename and line number only (e.g., "user.go:42").
-	"short": ShortCallerEncoder,
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[callerapi.Encoder]()
 
-	// Full format: complete file path and line number (e.g., "/app/handlers/user.go:42").
-	"full": FullCallerEncoder,
+func init() {
+	// Register built-in caller encoders.
+	encoderRegistry.Register("short", ShortCallerEncoder)
+	encoderRegistry.Register("full", FullCallerEncoder)
 }
 
 // FromString looks up a caller encoder by its symbolic name.
@@ -59,11 +55,7 @@ var registry = map[string]callerapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (callerapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown caller encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a caller encoder by name
@@ -76,11 +68,7 @@ func FromString(name string) (callerapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) callerapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a caller encoder under the given symbolic name.
@@ -102,5 +90,5 @@ func MustFromString(name string) callerapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder callerapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }

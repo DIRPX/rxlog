@@ -17,22 +17,20 @@
 package stack
 
 import (
-	"fmt"
-
 	stackapi "dirpx.dev/rxlog/rxapi/stack"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete stack trace encoders.
+// encoderRegistry holds registered stack trace encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "full"). Each entry points to one of the predefined
-// Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]stackapi.Encoder{
-	// Full format: complete stack trace as-is.
-	"full": FullStackEncoder,
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[stackapi.Encoder]()
+
+func init() {
+	// Register built-in stack trace encoders.
+	encoderRegistry.Register("full", FullStackEncoder)
 }
 
 // FromString looks up a stack trace encoder by its symbolic name.
@@ -55,11 +53,7 @@ var registry = map[string]stackapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (stackapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown stack encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a stack trace encoder by name
@@ -72,11 +66,7 @@ func FromString(name string) (stackapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) stackapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a stack trace encoder under the given symbolic name.
@@ -98,5 +88,5 @@ func MustFromString(name string) stackapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder stackapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }

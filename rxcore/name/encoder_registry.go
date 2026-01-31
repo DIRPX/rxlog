@@ -17,22 +17,20 @@
 package name
 
 import (
-	"fmt"
-
 	nameapi "dirpx.dev/rxlog/rxapi/name"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete name encoders.
+// encoderRegistry holds registered name encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "full"). Each entry points to one of the predefined
-// Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]nameapi.Encoder{
-	// Full format: complete logger name as-is.
-	"full": FullNameEncoder,
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[nameapi.Encoder]()
+
+func init() {
+	// Register built-in name encoders.
+	encoderRegistry.Register("full", FullNameEncoder)
 }
 
 // FromString looks up a name encoder by its symbolic name.
@@ -55,11 +53,7 @@ var registry = map[string]nameapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (nameapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown name encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a name encoder by name
@@ -72,11 +66,7 @@ func FromString(name string) (nameapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) nameapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a name encoder under the given symbolic name.
@@ -98,5 +88,5 @@ func MustFromString(name string) nameapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder nameapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }
