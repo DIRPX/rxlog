@@ -17,99 +17,66 @@
 package time
 
 import (
-	"fmt"
-
 	timeapi "dirpx.dev/rxlog/rxapi/chrono/time"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete time encoders.
+// encoderRegistry holds registered time encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, JSON/YAML/TOML). Each entry points to one of the predefined
-// Encoder values above.
-//
-// The registry is deliberately unexported; higher-level packages SHOULD expose
-// a stable lookup helper (for example, LookupEncoder(name string) (Encoder, bool))
-// rather than relying on map access directly.
-var registry = map[string]timeapi.Encoder{
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[timeapi.Encoder]()
+
+func init() {
+	// Register built-in time encoders with their aliases.
+
 	// ISO 8601–style layouts (UTC by default).
-
-	// Canonical ISO 8601 with millisecond precision (zap-style).
-	"iso8601":        ISO8601MillisTimeEncoder,
-	"iso8601-millis": ISO8601MillisTimeEncoder,
-
-	// ISO 8601 with second precision.
-	"iso8601-sec":     ISO8601SecondsTimeEncoder,
-	"iso8601-seconds": ISO8601SecondsTimeEncoder,
-
-	// ISO 8601 with microsecond precision.
-	"iso8601-micros": ISO8601MicrosTimeEncoder,
-
-	// ISO 8601 with nanosecond precision.
-	"iso8601-nanos": ISO8601NanosTimeEncoder,
+	encoderRegistry.Register("iso8601", ISO8601MillisTimeEncoder)
+	encoderRegistry.Register("iso8601-millis", ISO8601MillisTimeEncoder)
+	encoderRegistry.Register("iso8601-sec", ISO8601SecondsTimeEncoder)
+	encoderRegistry.Register("iso8601-seconds", ISO8601SecondsTimeEncoder)
+	encoderRegistry.Register("iso8601-micros", ISO8601MicrosTimeEncoder)
+	encoderRegistry.Register("iso8601-nanos", ISO8601NanosTimeEncoder)
 
 	// RFC 3339 and related layouts (canonical for JSON/API payloads).
-
-	// RFC3339 with second precision.
-	"rfc3339": RFC3339TimeEncoder,
-
-	// RFC3339Nano with nanosecond precision.
-	"rfc3339-nano": RFC3339NanoTimeEncoder,
+	encoderRegistry.Register("rfc3339", RFC3339TimeEncoder)
+	encoderRegistry.Register("rfc3339-nano", RFC3339NanoTimeEncoder)
 
 	// RFC1123 / RFC1123Z (HTTP-date style with textual / numeric zone).
-	"rfc1123":  RFC1123TimeEncoder,
-	"rfc1123z": RFC1123ZTimeEncoder,
+	encoderRegistry.Register("rfc1123", RFC1123TimeEncoder)
+	encoderRegistry.Register("rfc1123z", RFC1123ZTimeEncoder)
 
 	// RFC822 / RFC822Z legacy email/date formats.
-	"rfc822":  RFC822TimeEncoder,
-	"rfc822z": RFC822ZTimeEncoder,
+	encoderRegistry.Register("rfc822", RFC822TimeEncoder)
+	encoderRegistry.Register("rfc822z", RFC822ZTimeEncoder)
 
 	// RFC850 HTTP-date style.
-	"rfc850": RFC850TimeEncoder,
+	encoderRegistry.Register("rfc850", RFC850TimeEncoder)
 
 	// Other textual layouts from the Go standard library.
-
-	// ANSIC layout, using the local time zone.
-	"ansic": ANSICTimeEncoder,
-
-	// UnixDate layout, using the local time zone.
-	"unixdate": UnixDateTimeEncoder,
-
-	// Kitchen 12-hour clock layout.
-	"kitchen": KitchenTimeEncoder,
+	encoderRegistry.Register("ansic", ANSICTimeEncoder)
+	encoderRegistry.Register("unixdate", UnixDateTimeEncoder)
+	encoderRegistry.Register("kitchen", KitchenTimeEncoder)
 
 	// Stamp family: short, locale-like representations.
-	"stamp":        StampTimeEncoder,
-	"stamp-millis": StampMilliTimeEncoder,
-	"stamp-micros": StampMicroTimeEncoder,
-	"stamp-nanos":  StampNanoTimeEncoder,
+	encoderRegistry.Register("stamp", StampTimeEncoder)
+	encoderRegistry.Register("stamp-millis", StampMilliTimeEncoder)
+	encoderRegistry.Register("stamp-micros", StampMicroTimeEncoder)
+	encoderRegistry.Register("stamp-nanos", StampNanoTimeEncoder)
 
 	// Date / time-only textual layouts.
-
-	// Calendar date only (YYYY-MM-DD) in UTC.
-	"date": DateOnlyTimeEncoder,
-
-	// Clock time only (HH:MM:SS) in UTC.
-	"time": TimeOnlyTimeEncoder,
-
-	// Clock time with millisecond precision in UTC.
-	"time-millis": TimeMillisOnlyTimeEncoder,
+	encoderRegistry.Register("date", DateOnlyTimeEncoder)
+	encoderRegistry.Register("time", TimeOnlyTimeEncoder)
+	encoderRegistry.Register("time-millis", TimeMillisOnlyTimeEncoder)
 
 	// Numeric Unix epoch representations.
-
-	// Seconds since Unix epoch (1970-01-01T00:00:00Z).
-	"unix":         UnixSecondsTimeEncoder,
-	"unix-seconds": UnixSecondsTimeEncoder,
-	"unix-secs":    UnixSecondsTimeEncoder,
-
-	// Milliseconds since Unix epoch.
-	"unix-millis": UnixMillisTimeEncoder,
-
-	// Microseconds since Unix epoch.
-	"unix-micros": UnixMicrosTimeEncoder,
-
-	// Nanoseconds since Unix epoch.
-	"unix-nanos": UnixNanosTimeEncoder,
+	encoderRegistry.Register("unix", UnixSecondsTimeEncoder)
+	encoderRegistry.Register("unix-seconds", UnixSecondsTimeEncoder)
+	encoderRegistry.Register("unix-secs", UnixSecondsTimeEncoder)
+	encoderRegistry.Register("unix-millis", UnixMillisTimeEncoder)
+	encoderRegistry.Register("unix-micros", UnixMicrosTimeEncoder)
+	encoderRegistry.Register("unix-nanos", UnixNanosTimeEncoder)
 }
 
 // FromString looks up a time encoder by its symbolic name.
@@ -133,11 +100,7 @@ var registry = map[string]timeapi.Encoder{
 //     provide external synchronization (for example, a mutex) around registry
 //     mutations.
 func FromString(name string) (timeapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown time encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a time encoder by name
@@ -150,11 +113,7 @@ func FromString(name string) (timeapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) timeapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a time encoder under the given symbolic name.
@@ -176,5 +135,5 @@ func MustFromString(name string) timeapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder timeapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }

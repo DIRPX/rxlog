@@ -17,49 +17,49 @@
 package duration
 
 import (
-	"fmt"
-
 	durationapi "dirpx.dev/rxlog/rxapi/chrono/duration"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
-// registry maps symbolic encoder names to concrete duration encoders.
+// encoderRegistry holds registered duration encoders keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "seconds", "millis", "string"). Each entry points to one of the
-// predefined Encoder values above.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]durationapi.Encoder{
+// Built-in encoders are registered during package initialization. Callers
+// SHOULD use FromString, Register, and MustFromString to interact with the
+// registry rather than accessing it directly.
+var encoderRegistry = registry.New[durationapi.Encoder]()
+
+func init() {
+	// Register built-in duration encoders with their aliases.
+
 	// String representation (Go's native duration format).
-	"string": StringDurationEncoder,
+	encoderRegistry.Register("string", StringDurationEncoder)
 
 	// Floating-point seconds.
-	"seconds":      SecondsDurationEncoder,
-	"secs":         SecondsDurationEncoder,
-	"seconds-f64":  SecondsDurationEncoder,
-	"secs-float64": SecondsDurationEncoder,
+	encoderRegistry.Register("seconds", SecondsDurationEncoder)
+	encoderRegistry.Register("secs", SecondsDurationEncoder)
+	encoderRegistry.Register("seconds-f64", SecondsDurationEncoder)
+	encoderRegistry.Register("secs-float64", SecondsDurationEncoder)
 
 	// Integer milliseconds.
-	"millis":       MillisDurationEncoder,
-	"milliseconds": MillisDurationEncoder,
-	"ms":           MillisDurationEncoder,
-	"millis-int64": MillisDurationEncoder,
-	"ms-int64":     MillisDurationEncoder,
+	encoderRegistry.Register("millis", MillisDurationEncoder)
+	encoderRegistry.Register("milliseconds", MillisDurationEncoder)
+	encoderRegistry.Register("ms", MillisDurationEncoder)
+	encoderRegistry.Register("millis-int64", MillisDurationEncoder)
+	encoderRegistry.Register("ms-int64", MillisDurationEncoder)
 
 	// Integer microseconds.
-	"micros":          MicrosDurationEncoder,
-	"microseconds":    MicrosDurationEncoder,
-	"µs":              MicrosDurationEncoder, // for completeness; use with care in configs
-	"micros-int64":    MicrosDurationEncoder,
-	"microsecs-int64": MicrosDurationEncoder,
+	encoderRegistry.Register("micros", MicrosDurationEncoder)
+	encoderRegistry.Register("microseconds", MicrosDurationEncoder)
+	encoderRegistry.Register("µs", MicrosDurationEncoder) // for completeness; use with care in configs
+	encoderRegistry.Register("micros-int64", MicrosDurationEncoder)
+	encoderRegistry.Register("microsecs-int64", MicrosDurationEncoder)
 
 	// Integer nanoseconds.
-	"nanos":          NanosDurationEncoder,
-	"nanoseconds":    NanosDurationEncoder,
-	"ns":             NanosDurationEncoder,
-	"nanos-int64":    NanosDurationEncoder,
-	"nanosecs-int64": NanosDurationEncoder,
+	encoderRegistry.Register("nanos", NanosDurationEncoder)
+	encoderRegistry.Register("nanoseconds", NanosDurationEncoder)
+	encoderRegistry.Register("ns", NanosDurationEncoder)
+	encoderRegistry.Register("nanos-int64", NanosDurationEncoder)
+	encoderRegistry.Register("nanosecs-int64", NanosDurationEncoder)
 }
 
 // FromString looks up a duration encoder by its symbolic name.
@@ -86,11 +86,7 @@ var registry = map[string]durationapi.Encoder{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string) (durationapi.Encoder, error) {
-	enc, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("unknown duration encoder: %q", name)
-	}
-	return enc, nil
+	return encoderRegistry.FromString(name)
 }
 
 // MustFromString is a convenience helper that resolves a duration encoder by
@@ -103,11 +99,7 @@ func FromString(name string) (durationapi.Encoder, error) {
 //
 // The panic message is the same error produced by FromString(name).
 func MustFromString(name string) durationapi.Encoder {
-	enc, err := FromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return enc
+	return encoderRegistry.MustFromString(name)
 }
 
 // Register installs or overrides a duration encoder under the given symbolic name.
@@ -129,5 +121,5 @@ func MustFromString(name string) durationapi.Encoder {
 //     initialization, before any goroutine starts using FromString or
 //     MustFromString.
 func Register(name string, encoder durationapi.Encoder) {
-	registry[name] = encoder
+	encoderRegistry.Register(name, encoder)
 }
