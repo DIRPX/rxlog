@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"dirpx.dev/rxlog/rxapi/encoder"
+	"dirpx.dev/rxlog/rxcore/registry"
 )
 
 // Factory is a function that constructs an Encoder from the provided Config.
@@ -33,21 +34,12 @@ import (
 // or resource allocation failure).
 type Factory func(cfg Config) (encoder.Encoder, error)
 
-// registry maps symbolic encoder names to encoder factory functions.
+// encoderFactoryRegistry holds registered encoder factories keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "json", "console", "text"). Each entry points to a Factory
-// function that creates an encoder of that type.
-//
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]Factory{
-	// Built-in encoders will be registered here as they are implemented.
-	// For example:
-	//   "json"    -> NewJSONEncoder
-	//   "console" -> NewConsoleEncoder
-	//   "text"    -> NewTextEncoder
-}
+// Built-in encoder implementations will register themselves during package
+// initialization. Callers SHOULD use FromString, Register, and MustFromString
+// to interact with the registry rather than accessing it directly.
+var encoderFactoryRegistry = registry.New[Factory]()
 
 // FromString looks up an encoder factory by its symbolic name and creates
 // an encoder using the provided configuration.
@@ -75,8 +67,8 @@ var registry = map[string]Factory{
 //   - If Register is called concurrently with FromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func FromString(name string, cfg Config) (encoder.Encoder, error) {
-	factory, ok := registry[name]
-	if !ok {
+	factory, err := encoderFactoryRegistry.FromString(name)
+	if err != nil {
 		return nil, fmt.Errorf("unknown encoder type: %q", name)
 	}
 	return factory(cfg)
@@ -129,5 +121,5 @@ func MustFromString(name string, cfg Config) encoder.Encoder {
 //     initialization (for example, in init functions), before any goroutine
 //     starts using FromString or MustFromString.
 func Register(name string, factory Factory) {
-	registry[name] = factory
+	encoderFactoryRegistry.Register(name, factory)
 }

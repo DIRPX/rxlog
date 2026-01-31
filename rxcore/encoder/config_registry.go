@@ -17,28 +17,28 @@
 package encoder
 
 import (
-	"fmt"
-
 	callerpkg "dirpx.dev/rxlog/rxcore/caller"
 	"dirpx.dev/rxlog/rxcore/chrono/duration"
 	"dirpx.dev/rxlog/rxcore/chrono/time"
 	errorpkg "dirpx.dev/rxlog/rxcore/error"
 	"dirpx.dev/rxlog/rxcore/level"
 	namepkg "dirpx.dev/rxlog/rxcore/name"
+	"dirpx.dev/rxlog/rxcore/registry"
 	stackpkg "dirpx.dev/rxlog/rxcore/stack"
 )
 
-// configRegistry maps symbolic config preset names to concrete encoder configurations.
+// encoderConfigRegistry holds registered encoder config presets keyed by symbolic names.
 //
-// Keys are lower-case, hyphen-separated identifiers intended for configuration
-// (for example, "json", "console", "development", "production"). Each entry
-// points to a preconfigured Config value.
-//
-// The registry is deliberately unexported; callers SHOULD use ConfigFromString,
-// RegisterConfig, and MustConfigFromString rather than accessing the map directly.
-var configRegistry = map[string]Config{
+// Built-in presets are registered during package initialization. Callers
+// SHOULD use ConfigFromString, RegisterConfig, and MustConfigFromString to
+// interact with the registry rather than accessing it directly.
+var encoderConfigRegistry = registry.New[Config]()
+
+func init() {
+	// Register built-in encoder config presets.
+
 	// JSON format: structured JSON with lowercase levels, RFC3339 timestamps.
-	"json": {
+	encoderConfigRegistry.Register("json", Config{
 		MessageKey:        "msg",
 		LevelKey:          "level",
 		TimeKey:           "time",
@@ -65,10 +65,10 @@ var configRegistry = map[string]Config{
 		DisableHTMLEscape: false,
 		ErrorHandler:      nil,
 		FormatOptions:     nil,
-	},
+	})
 
 	// Console format: human-readable with capital levels, short caller.
-	"console": {
+	encoderConfigRegistry.Register("console", Config{
 		MessageKey:        "msg",
 		LevelKey:          "level",
 		TimeKey:           "time",
@@ -95,10 +95,10 @@ var configRegistry = map[string]Config{
 		DisableHTMLEscape: true,
 		ErrorHandler:      nil,
 		FormatOptions:     nil,
-	},
+	})
 
 	// Development format: pretty-printed JSON with full paths for debugging.
-	"development": {
+	encoderConfigRegistry.Register("development", Config{
 		MessageKey:        "msg",
 		LevelKey:          "level",
 		TimeKey:           "time",
@@ -125,10 +125,10 @@ var configRegistry = map[string]Config{
 		DisableHTMLEscape: true,
 		ErrorHandler:      nil,
 		FormatOptions:     nil,
-	},
+	})
 
 	// Production format: compact JSON with minimal overhead.
-	"production": {
+	encoderConfigRegistry.Register("production", Config{
 		MessageKey:        "msg",
 		LevelKey:          "level",
 		TimeKey:           "time",
@@ -155,7 +155,7 @@ var configRegistry = map[string]Config{
 		DisableHTMLEscape: false,
 		ErrorHandler:      nil,
 		FormatOptions:     nil,
-	},
+	})
 }
 
 // ConfigFromString looks up an encoder configuration preset by its symbolic name.
@@ -181,11 +181,7 @@ var configRegistry = map[string]Config{
 //   - If RegisterConfig is called concurrently with ConfigFromString, the caller MUST
 //     provide external synchronization around registry mutations.
 func ConfigFromString(name string) (Config, error) {
-	cfg, ok := configRegistry[name]
-	if !ok {
-		return Config{}, fmt.Errorf("unknown encoder config preset: %q", name)
-	}
-	return cfg, nil
+	return encoderConfigRegistry.FromString(name)
 }
 
 // MustConfigFromString is a convenience helper that resolves an encoder config preset
@@ -198,11 +194,7 @@ func ConfigFromString(name string) (Config, error) {
 //
 // The panic message is the same error produced by ConfigFromString(name).
 func MustConfigFromString(name string) Config {
-	cfg, err := ConfigFromString(name)
-	if err != nil {
-		panic(err)
-	}
-	return cfg
+	return encoderConfigRegistry.MustFromString(name)
 }
 
 // RegisterConfig installs or overrides an encoder config preset under the given
@@ -225,5 +217,5 @@ func MustConfigFromString(name string) Config {
 //     initialization, before any goroutine starts using ConfigFromString or
 //     MustConfigFromString.
 func RegisterConfig(name string, config Config) {
-	configRegistry[name] = config
+	encoderConfigRegistry.Register(name, config)
 }
