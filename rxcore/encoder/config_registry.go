@@ -28,15 +28,15 @@ import (
 	stackpkg "dirpx.dev/rxlog/rxcore/stack"
 )
 
-// registry maps symbolic config preset names to concrete encoder configurations.
+// configRegistry maps symbolic config preset names to concrete encoder configurations.
 //
 // Keys are lower-case, hyphen-separated identifiers intended for configuration
 // (for example, "json", "console", "development", "production"). Each entry
 // points to a preconfigured Config value.
 //
-// The registry is deliberately unexported; callers SHOULD use FromString,
-// Register, and MustFromString rather than accessing the map directly.
-var registry = map[string]Config{
+// The registry is deliberately unexported; callers SHOULD use ConfigFromString,
+// RegisterConfig, and MustConfigFromString rather than accessing the map directly.
+var configRegistry = map[string]Config{
 	// JSON format: structured JSON with lowercase levels, RFC3339 timestamps.
 	"json": {
 		MessageKey:        "msg",
@@ -158,7 +158,7 @@ var registry = map[string]Config{
 	},
 }
 
-// FromString looks up an encoder configuration preset by its symbolic name.
+// ConfigFromString looks up an encoder configuration preset by its symbolic name.
 //
 // The name must match one of the registered keys in the internal registry.
 // Built-in presets include:
@@ -168,27 +168,27 @@ var registry = map[string]Config{
 //   - "development" — pretty-printed JSON with full paths for debugging
 //   - "production"  — compact JSON with minimal overhead
 //
-// If no config is registered under the given name, FromString returns a
+// If no config is registered under the given name, ConfigFromString returns a
 // non-nil error and a zero-valued Config.
 //
 // This function is intended for configuration-driven setups (for example,
 // parsing encoder preset names from JSON/YAML/TOML). Callers SHOULD normalize
-// user-provided values to lower-case before calling FromString.
+// user-provided values to lower-case before calling ConfigFromString.
 //
 // Concurrency:
-//   - Concurrent read-only access (calling FromString after all Register
+//   - Concurrent read-only access (calling ConfigFromString after all RegisterConfig
 //     calls have completed) is safe.
-//   - If Register is called concurrently with FromString, the caller MUST
+//   - If RegisterConfig is called concurrently with ConfigFromString, the caller MUST
 //     provide external synchronization around registry mutations.
-func FromString(name string) (Config, error) {
-	cfg, ok := registry[name]
+func ConfigFromString(name string) (Config, error) {
+	cfg, ok := configRegistry[name]
 	if !ok {
 		return Config{}, fmt.Errorf("unknown encoder config preset: %q", name)
 	}
 	return cfg, nil
 }
 
-// MustFromString is a convenience helper that resolves an encoder config preset
+// MustConfigFromString is a convenience helper that resolves an encoder config preset
 // by name and panics if the name is not registered.
 //
 // This is useful in static setup code (for example, wiring encoders from
@@ -196,34 +196,34 @@ func FromString(name string) (Config, error) {
 // programmer error or a misconfigured build. It SHOULD NOT be used for
 // untrusted or user-provided input, where returning an error is preferable.
 //
-// The panic message is the same error produced by FromString(name).
-func MustFromString(name string) Config {
-	cfg, err := FromString(name)
+// The panic message is the same error produced by ConfigFromString(name).
+func MustConfigFromString(name string) Config {
+	cfg, err := ConfigFromString(name)
 	if err != nil {
 		panic(err)
 	}
 	return cfg
 }
 
-// Register installs or overrides an encoder config preset under the given
+// RegisterConfig installs or overrides an encoder config preset under the given
 // symbolic name.
 //
 // If a config is already registered under name, it will be replaced.
-// Register does not perform any validation on name; callers SHOULD follow the
+// RegisterConfig does not perform any validation on name; callers SHOULD follow the
 // same naming convention as the built-in presets (lower-case, hyphen-separated
 // identifiers) to keep configuration consistent.
 //
-// Register is intended to be called during process initialization (for example,
+// RegisterConfig is intended to be called during process initialization (for example,
 // from init functions) to extend the set of available config presets with
 // application-specific formats.
 //
 // Concurrency:
-//   - Register mutates the shared registry map and is NOT safe to call
-//     concurrently with other Register or FromString calls unless the caller
+//   - RegisterConfig mutates the shared registry map and is NOT safe to call
+//     concurrently with other RegisterConfig or ConfigFromString calls unless the caller
 //     provides external synchronization.
-//   - The recommended pattern is to perform all Register calls during
-//     initialization, before any goroutine starts using FromString or
-//     MustFromString.
-func Register(name string, config Config) {
-	registry[name] = config
+//   - The recommended pattern is to perform all RegisterConfig calls during
+//     initialization, before any goroutine starts using ConfigFromString or
+//     MustConfigFromString.
+func RegisterConfig(name string, config Config) {
+	configRegistry[name] = config
 }

@@ -38,9 +38,9 @@ func TestFromString_RegisteredConfigs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := encoder.FromString(tt.name)
+			cfg, err := encoder.ConfigFromString(tt.name)
 			if err != nil {
-				t.Fatalf("FromString(%q) returned error: %v", tt.name, err)
+				t.Fatalf("ConfigFromString(%q) returned error: %v", tt.name, err)
 			}
 
 			// Verify basic fields are set.
@@ -57,37 +57,37 @@ func TestFromString_RegisteredConfigs(t *testing.T) {
 	}
 }
 
-// TestFromString_UnknownConfig verifies that FromString returns an error
+// TestConfigFromString_UnknownConfig verifies that ConfigFromString returns an error
 // for unregistered config preset names.
-func TestFromString_UnknownConfig(t *testing.T) {
+func TestConfigFromString_UnknownConfig(t *testing.T) {
 	t.Helper()
 
-	_, err := encoder.FromString("nonexistent")
+	_, err := encoder.ConfigFromString("nonexistent")
 	if err == nil {
-		t.Fatal("FromString(\"nonexistent\") returned nil error, want error")
+		t.Fatal("ConfigFromString(\"nonexistent\") returned nil error, want error")
 	}
 }
 
-// TestMustFromString_PanicsOnUnknown verifies that MustFromString panics
+// TestMustConfigFromString_PanicsOnUnknown verifies that MustConfigFromString panics
 // when given an unregistered config preset name.
-func TestMustFromString_PanicsOnUnknown(t *testing.T) {
+func TestMustConfigFromString_PanicsOnUnknown(t *testing.T) {
 	t.Helper()
 
 	defer func() {
 		if r := recover(); r == nil {
-			t.Fatal("MustFromString(\"unknown\") did not panic")
+			t.Fatal("MustConfigFromString(\"unknown\") did not panic")
 		}
 	}()
 
-	_ = encoder.MustFromString("unknown")
+	_ = encoder.MustConfigFromString("unknown")
 }
 
-// TestMustFromString_ReturnsConfigOnSuccess verifies that MustFromString
+// TestMustConfigFromString_ReturnsConfigOnSuccess verifies that MustConfigFromString
 // returns a valid config for registered names without panicking.
-func TestMustFromString_ReturnsConfigOnSuccess(t *testing.T) {
+func TestMustConfigFromString_ReturnsConfigOnSuccess(t *testing.T) {
 	t.Helper()
 
-	cfg := encoder.MustFromString("json")
+	cfg := encoder.MustConfigFromString("json")
 
 	// Verify it's a valid config.
 	if cfg.MessageKey == "" {
@@ -98,9 +98,9 @@ func TestMustFromString_ReturnsConfigOnSuccess(t *testing.T) {
 	}
 }
 
-// TestRegister_AddsCustomConfig verifies that Register allows adding
-// custom configs that can then be retrieved via FromString.
-func TestRegister_AddsCustomConfig(t *testing.T) {
+// TestRegisterConfig_AddsCustomConfig verifies that RegisterConfig allows adding
+// custom configs that can then be retrieved via ConfigFromString.
+func TestRegisterConfig_AddsCustomConfig(t *testing.T) {
 	t.Helper()
 
 	const customName = "test-custom-config"
@@ -112,12 +112,12 @@ func TestRegister_AddsCustomConfig(t *testing.T) {
 		TimeKey:    "custom_time",
 	}
 
-	encoder.Register(customName, customCfg)
+	encoder.RegisterConfig(customName, customCfg)
 
 	// Verify the custom config can be retrieved.
-	cfg, err := encoder.FromString(customName)
+	cfg, err := encoder.ConfigFromString(customName)
 	if err != nil {
-		t.Fatalf("FromString(%q) after Register returned error: %v", customName, err)
+		t.Fatalf("ConfigFromString(%q) after RegisterConfig returned error: %v", customName, err)
 	}
 
 	if cfg.MessageKey != "custom_msg" {
@@ -128,9 +128,9 @@ func TestRegister_AddsCustomConfig(t *testing.T) {
 	}
 }
 
-// TestRegister_OverwritesExistingConfig verifies that Register replaces
+// TestRegisterConfig_OverwritesExistingConfig verifies that RegisterConfig replaces
 // an existing config when the same name is used.
-func TestRegister_OverwritesExistingConfig(t *testing.T) {
+func TestRegisterConfig_OverwritesExistingConfig(t *testing.T) {
 	t.Helper()
 
 	const testName = "test-overwrite-config"
@@ -139,18 +139,18 @@ func TestRegister_OverwritesExistingConfig(t *testing.T) {
 	initialCfg := encoder.Config{
 		MessageKey: "initial",
 	}
-	encoder.Register(testName, initialCfg)
+	encoder.RegisterConfig(testName, initialCfg)
 
 	// Overwrite with a different config.
 	replacementCfg := encoder.Config{
 		MessageKey: "replaced",
 	}
-	encoder.Register(testName, replacementCfg)
+	encoder.RegisterConfig(testName, replacementCfg)
 
 	// Verify the replacement config is now used.
-	cfg, err := encoder.FromString(testName)
+	cfg, err := encoder.ConfigFromString(testName)
 	if err != nil {
-		t.Fatalf("FromString(%q) after replacement returned error: %v", testName, err)
+		t.Fatalf("ConfigFromString(%q) after replacement returned error: %v", testName, err)
 	}
 
 	if cfg.MessageKey != "replaced" {
@@ -167,9 +167,9 @@ func TestBuiltinConfigs_HaveRequiredEncoders(t *testing.T) {
 
 	for _, preset := range presets {
 		t.Run(preset, func(t *testing.T) {
-			cfg, err := encoder.FromString(preset)
+			cfg, err := encoder.ConfigFromString(preset)
 			if err != nil {
-				t.Fatalf("FromString(%q) returned error: %v", preset, err)
+				t.Fatalf("ConfigFromString(%q) returned error: %v", preset, err)
 			}
 
 			// Verify all encoder functions are set.
@@ -203,9 +203,9 @@ func TestBuiltinConfigs_HaveRequiredEncoders(t *testing.T) {
 func TestProductionConfig_IsCompact(t *testing.T) {
 	t.Helper()
 
-	cfg, err := encoder.FromString("production")
+	cfg, err := encoder.ConfigFromString("production")
 	if err != nil {
-		t.Fatalf("FromString(\"production\") returned error: %v", err)
+		t.Fatalf("ConfigFromString(\"production\") returned error: %v", err)
 	}
 
 	if cfg.PrettyPrint {
@@ -221,9 +221,9 @@ func TestProductionConfig_IsCompact(t *testing.T) {
 func TestDevelopmentConfig_IsPrettyPrinted(t *testing.T) {
 	t.Helper()
 
-	cfg, err := encoder.FromString("development")
+	cfg, err := encoder.ConfigFromString("development")
 	if err != nil {
-		t.Fatalf("FromString(\"development\") returned error: %v", err)
+		t.Fatalf("ConfigFromString(\"development\") returned error: %v", err)
 	}
 
 	if !cfg.PrettyPrint {
