@@ -17,6 +17,8 @@
 package rxlog
 
 import (
+	"fmt"
+	"math"
 	"time"
 
 	"dirpx.dev/rxlog/rxapi/encoder/base"
@@ -134,179 +136,643 @@ const (
 	InlineFieldType = ftype.Inline
 )
 
-// Field constructor shortcuts providing convenient access to rxapi/field
-// constructor functions.
-var (
-	// Array constructs a Field carrying an ArrayMarshaler.
-	Array = field.Array
+// Array constructs a Field of Type Array carrying an ArrayMarshaler.
+//
+// The marshaler MUST NOT be nil. The encoder will delegate array serialization
+// to this value without using reflection.
+func Array(key string, m base.ArrayMarshaler) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Array,
+		Interface: m,
+	}
+}
 
-	// Object constructs a Field carrying an ObjectMarshaler.
-	Object = field.Object
+// Object constructs a Field of Type Object carrying an ObjectMarshaler.
+//
+// The marshaler MUST NOT be nil. The encoder will call MarshalLogObject to
+// emit nested fields.
+func Object(key string, m base.ObjectMarshaler) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Object,
+		Interface: m,
+	}
+}
 
-	// Inline constructs a Field whose fields will be inlined.
-	Inline = field.Inline
+// Inline constructs a Field of Type Inline carrying an ObjectMarshaler whose
+// fields will be inlined into the surrounding object.
+//
+// The encoder MUST NOT create an additional nesting level for this field.
+func Inline(m base.ObjectMarshaler) Field {
+	return Field{
+		Type:      ftype.Inline,
+		Interface: m,
+	}
+}
 
-	// Namespace constructs a Field that opens a logical sub-namespace.
-	Namespace = field.Namespace
+// Namespace constructs a Field of Type Namespace that opens a logical
+// sub-namespace under the given key.
+//
+// Encoders typically implement this as a nested object or scope in the output.
+func Namespace(key string) Field {
+	return Field{
+		Key:  key,
+		Type: ftype.Namespace,
+	}
+}
 
-	// Skip constructs a no-op placeholder Field.
-	Skip = field.Skip
+// Skip constructs a Field of Type Skip which is a no-op placeholder.
+//
+// Encoders MUST ignore Skip fields and emit nothing for them.
+func Skip() Field {
+	return Field{
+		Type: ftype.Skip,
+	}
+}
 
-	// Binary constructs a Field carrying an opaque byte slice.
-	Binary = field.Binary
+// Binary constructs a Field of Type Binary carrying an opaque byte slice.
+//
+// The slice is NOT copied; callers MUST NOT mutate it after constructing the
+// field if encoders can access it concurrently.
+func Binary(key string, b []byte) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Binary,
+		Interface: b,
+	}
+}
 
-	// BinaryPtr constructs a Binary field from a *[]byte.
-	BinaryPtr = field.BinaryPtr
+// BinaryPtr constructs a Binary field from a *[]byte.
+//
+// If value is nil, Skip is returned.
+func BinaryPtr(key string, value *[]byte) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Binary(key, *value)
+}
 
-	// ByteString constructs a Field carrying a UTF-8 byte slice.
-	ByteString = field.ByteString
+// ByteString constructs a Field of Type ByteString carrying a UTF-8 byte slice.
+//
+// The slice is NOT copied. Encoders MAY validate UTF-8 but are not required to.
+func ByteString(key string, b []byte) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.ByteString,
+		Interface: b,
+	}
+}
 
-	// ByteStringPtr constructs a ByteString field from a *[]byte.
-	ByteStringPtr = field.ByteStringPtr
+// ByteStringPtr constructs a ByteString field from a *[]byte.
+//
+// If value is nil, Skip is returned.
+func ByteStringPtr(key string, value *[]byte) Field {
+	if value == nil {
+		return Skip()
+	}
+	return ByteString(key, *value)
+}
 
-	// String constructs a Field carrying a textual value.
-	String = field.String
+// String constructs a Field of Type String carrying a textual value.
+func String(key, value string) Field {
+	return Field{
+		Key:    key,
+		Type:   ftype.String,
+		String: value,
+	}
+}
 
-	// StringPtr constructs a String field from a *string.
-	StringPtr = field.StringPtr
+// StringPtr constructs a String field from a *string.
+//
+// If value is nil, Skip is returned.
+func StringPtr(key string, value *string) Field {
+	if value == nil {
+		return Skip()
+	}
+	return String(key, *value)
+}
 
-	// Bool constructs a Field carrying a boolean value.
-	Bool = field.Bool
+// Bool constructs a Field of Type Bool carrying a boolean value.
+//
+// The value is stored as 0 (false) or 1 (true) in Field.Integer.
+func Bool(key string, value bool) Field {
+	var i int64
+	if value {
+		i = 1
+	}
+	return Field{
+		Key:     key,
+		Type:    ftype.Bool,
+		Integer: i,
+	}
+}
 
-	// BoolPtr constructs a Bool field from a *bool.
-	BoolPtr = field.BoolPtr
+// BoolPtr constructs a Bool field from a *bool.
+//
+// If value is nil, Skip is returned.
+func BoolPtr(key string, value *bool) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Bool(key, *value)
+}
 
-	// Int64 constructs a Field carrying an int64 value.
-	Int64 = field.Int64
+// Int64 constructs a Field of Type Int64 carrying an int64 value.
+func Int64(key string, value int64) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Int64,
+		Integer: value,
+	}
+}
 
-	// Int64Ptr constructs an Int64 field from a *int64.
-	Int64Ptr = field.Int64Ptr
+// Int64Ptr constructs an Int64 field from a *int64.
+//
+// If value is nil, Skip is returned.
+func Int64Ptr(key string, value *int64) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Int64(key, *value)
+}
 
-	// Int32 constructs a Field carrying an int32 value.
-	Int32 = field.Int32
+// Int32 constructs a Field of Type Int32 carrying an int32 value.
+//
+// The value is widened to int64 in storage and narrowed back by encoders.
+func Int32(key string, value int32) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Int32,
+		Integer: int64(value),
+	}
+}
 
-	// Int32Ptr constructs an Int32 field from a *int32.
-	Int32Ptr = field.Int32Ptr
+// Int32Ptr constructs an Int32 field from a *int32.
+//
+// If value is nil, Skip is returned.
+func Int32Ptr(key string, value *int32) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Int32(key, *value)
+}
 
-	// Int16 constructs a Field carrying an int16 value.
-	Int16 = field.Int16
+// Int16 constructs a Field of Type Int16 carrying an int16 value.
+func Int16(key string, value int16) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Int16,
+		Integer: int64(value),
+	}
+}
 
-	// Int16Ptr constructs an Int16 field from a *int16.
-	Int16Ptr = field.Int16Ptr
+// Int16Ptr constructs an Int16 field from a *int16.
+//
+// If value is nil, Skip is returned.
+func Int16Ptr(key string, value *int16) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Int16(key, *value)
+}
 
-	// Int8 constructs a Field carrying an int8 value.
-	Int8 = field.Int8
+// Int8 constructs a Field of Type Int8 carrying an int8 value.
+func Int8(key string, value int8) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Int8,
+		Integer: int64(value),
+	}
+}
 
-	// Int8Ptr constructs an Int8 field from a *int8.
-	Int8Ptr = field.Int8Ptr
+// Int8Ptr constructs an Int8 field from a *int8.
+//
+// If value is nil, Skip is returned.
+func Int8Ptr(key string, value *int8) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Int8(key, *value)
+}
 
-	// Int constructs a Field carrying an int value.
-	Int = field.Int
+// Int constructs a Field of Type Int64 from a Go int value.
+//
+// This normalizes platform-dependent int to the canonical Int64 representation.
+func Int(key string, value int) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Int64,
+		Integer: int64(value),
+	}
+}
 
-	// IntPtr constructs an Int field from a *int.
-	IntPtr = field.IntPtr
+// IntPtr constructs an Int64 field from a *int.
+//
+// If value is nil, Skip is returned.
+func IntPtr(key string, value *int) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Int(key, *value)
+}
 
-	// Uint64 constructs a Field carrying a uint64 value.
-	Uint64 = field.Uint64
+// Uint64 constructs a Field of Type Uint64 carrying an uint64 value.
+//
+// The value is converted to int64 using Go's standard conversion rules.
+// Encoders MUST reconstruct the original unsigned value using uint64(f.Integer).
+func Uint64(key string, value uint64) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uint64,
+		Integer: int64(value),
+	}
+}
 
-	// Uint64Ptr constructs a Uint64 field from a *uint64.
-	Uint64Ptr = field.Uint64Ptr
+// Uint64Ptr constructs an Uint64 field from a *uint64.
+//
+// If value is nil, Skip is returned.
+func Uint64Ptr(key string, value *uint64) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uint64(key, *value)
+}
 
-	// Uint32 constructs a Field carrying a uint32 value.
-	Uint32 = field.Uint32
+// Uint32 constructs a Field of Type Uint32 carrying an uint32 value.
+func Uint32(key string, value uint32) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uint32,
+		Integer: int64(value),
+	}
+}
 
-	// Uint32Ptr constructs a Uint32 field from a *uint32.
-	Uint32Ptr = field.Uint32Ptr
+// Uint32Ptr constructs an Uint32 field from a *uint32.
+//
+// If value is nil, Skip is returned.
+func Uint32Ptr(key string, value *uint32) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uint32(key, *value)
+}
 
-	// Uint16 constructs a Field carrying a uint16 value.
-	Uint16 = field.Uint16
+// Uint16 constructs a Field of Type Uint16 carrying an uint16 value.
+func Uint16(key string, value uint16) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uint16,
+		Integer: int64(value),
+	}
+}
 
-	// Uint16Ptr constructs a Uint16 field from a *uint16.
-	Uint16Ptr = field.Uint16Ptr
+// Uint16Ptr constructs an Uint16 field from a *uint16.
+//
+// If value is nil, Skip is returned.
+func Uint16Ptr(key string, value *uint16) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uint16(key, *value)
+}
 
-	// Uint8 constructs a Field carrying a uint8 value.
-	Uint8 = field.Uint8
+// Uint8 constructs a Field of Type Uint8 carrying an uint8 value.
+func Uint8(key string, value uint8) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uint8,
+		Integer: int64(value),
+	}
+}
 
-	// Uint8Ptr constructs a Uint8 field from a *uint8.
-	Uint8Ptr = field.Uint8Ptr
+// Uint8Ptr constructs an Uint8 field from a *uint8.
+//
+// If value is nil, Skip is returned.
+func Uint8Ptr(key string, value *uint8) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uint8(key, *value)
+}
 
-	// Uint constructs a Field carrying a uint value.
-	Uint = field.Uint
+// Uint constructs a Field of Type Uint64 from a Go uint value.
+func Uint(key string, value uint) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uint64,
+		Integer: int64(value),
+	}
+}
 
-	// UintPtr constructs a Uint field from a *uint.
-	UintPtr = field.UintPtr
+// UintPtr constructs an Uint64 field from a *uint.
+//
+// If value is nil, Skip is returned.
+func UintPtr(key string, value *uint) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uint(key, *value)
+}
 
-	// Uintptr constructs a Field carrying a uintptr value.
-	Uintptr = field.Uintptr
+// Uintptr constructs a Field of Type Uintptr carrying an uintptr value.
+//
+// The value is widened to int64 and MUST be interpreted as uintptr by encoders.
+func Uintptr(key string, value uintptr) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Uintptr,
+		Integer: int64(value),
+	}
+}
 
-	// UintptrPtr constructs a Uintptr field from a *uintptr.
-	UintptrPtr = field.UintptrPtr
+// UintptrPtr constructs an Uintptr field from a *uintptr.
+//
+// If value is nil, Skip is returned.
+func UintptrPtr(key string, value *uintptr) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Uintptr(key, *value)
+}
 
-	// Float64 constructs a Field carrying a float64 value.
-	Float64 = field.Float64
+// Float64 constructs a Field of Type Float64 carrying a float64 value.
+//
+// The IEEE-754 bits are stored in Field.Integer via math.Float64bits.
+func Float64(key string, value float64) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Float64,
+		Integer: int64(math.Float64bits(value)),
+	}
+}
 
-	// Float64Ptr constructs a Float64 field from a *float64.
-	Float64Ptr = field.Float64Ptr
+// Float64Ptr constructs a Float64 field from a *float64.
+//
+// If value is nil, Skip is returned.
+func Float64Ptr(key string, value *float64) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Float64(key, *value)
+}
 
-	// Float32 constructs a Field carrying a float32 value.
-	Float32 = field.Float32
+// Float32 constructs a Field of Type Float32 carrying a float32 value.
+//
+// The IEEE-754 bits are stored in Field.Integer via math.Float32bits.
+func Float32(key string, value float32) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Float32,
+		Integer: int64(math.Float32bits(value)),
+	}
+}
 
-	// Float32Ptr constructs a Float32 field from a *float32.
-	Float32Ptr = field.Float32Ptr
+// Float32Ptr constructs a Float32 field from a *float32.
+//
+// If value is nil, Skip is returned.
+func Float32Ptr(key string, value *float32) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Float32(key, *value)
+}
 
-	// Complex128 constructs a Field carrying a complex128 value.
-	Complex128 = field.Complex128
+// Complex128 constructs a Field of Type Complex128 carrying a complex128 value.
+func Complex128(key string, value complex128) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Complex128,
+		Interface: value,
+	}
+}
 
-	// Complex128Ptr constructs a Complex128 field from a *complex128.
-	Complex128Ptr = field.Complex128Ptr
+// Complex128Ptr constructs a Complex128 field from a *complex128.
+//
+// If value is nil, Skip is returned.
+func Complex128Ptr(key string, value *complex128) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Complex128(key, *value)
+}
 
-	// Complex64 constructs a Field carrying a complex64 value.
-	Complex64 = field.Complex64
+// Complex64 constructs a Field of Type Complex64 carrying a complex64 value.
+func Complex64(key string, value complex64) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Complex64,
+		Interface: value,
+	}
+}
 
-	// Complex64Ptr constructs a Complex64 field from a *complex64.
-	Complex64Ptr = field.Complex64Ptr
+// Complex64Ptr constructs a Complex64 field from a *complex64.
+//
+// If value is nil, Skip is returned.
+func Complex64Ptr(key string, value *complex64) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Complex64(key, *value)
+}
 
-	// Duration constructs a Field carrying a time.Duration value.
-	Duration = field.Duration
+// Duration constructs a Field of Type Duration carrying a time.Duration value.
+//
+// The duration is stored in nanoseconds in Field.Integer.
+func Duration(key string, value time.Duration) Field {
+	return Field{
+		Key:     key,
+		Type:    ftype.Duration,
+		Integer: int64(value),
+	}
+}
 
-	// DurationPtr constructs a Duration field from a *time.Duration.
-	DurationPtr = field.DurationPtr
+// DurationPtr constructs a Duration field from a *time.Duration.
+//
+// If value is nil, Skip is returned.
+func DurationPtr(key string, value *time.Duration) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Duration(key, *value)
+}
 
-	// Time constructs a Field from a time.Time (normalized to UTC).
-	Time = field.Time
+// Time constructs a Field of Type Time from the provided time.Time.
+//
+// The timestamp is normalized to UTC and stored as UnixNano in Field.Integer.
+// If the original location is not UTC, it is stored in Field.Interface.
+func Time(key string, t time.Time) Field {
+	utc := t.UTC()
+	var loc *time.Location
+	if t.Location() != time.UTC {
+		loc = t.Location()
+	}
+	return Field{
+		Key:       key,
+		Type:      ftype.Time,
+		Integer:   utc.UnixNano(),
+		Interface: loc,
+	}
+}
 
-	// TimePtr constructs a Time field from a *time.Time.
-	TimePtr = field.TimePtr
-
-	// TimeFull constructs a Field carrying a full time.Time value.
-	TimeFull = field.TimeFull
-
-	// TimeFullPtr constructs a TimeFull field from a *time.Time.
-	TimeFullPtr = field.TimeFullPtr
-
-	// Error constructs a Field carrying an error value.
-	Error = field.Error
-
-	// ErrorPtr constructs an Error field from a *error.
-	ErrorPtr = field.ErrorPtr
-
-	// Stringer constructs a Field carrying a fmt.Stringer value.
-	Stringer = field.Stringer
-
-	// StringerPtr constructs a Stringer field from a *fmt.Stringer.
-	StringerPtr = field.StringerPtr
-
-	// Reflect constructs a Field carrying an arbitrary value.
-	Reflect = field.Reflect
-
-	// Any chooses a Field constructor based on the dynamic type of v.
-	Any = field.Any
-)
+// TimePtr constructs a Time field from a *time.Time.
+//
+// If value is nil, Skip is returned.
+func TimePtr(key string, value *time.Time) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Time(key, *value)
+}
 
 // TimeInLocation constructs a Time field by first converting t to loc.
 //
-// This is a convenience wrapper around field.TimeInLocation. See
-// rxapi/field.TimeInLocation for full documentation.
+// The resulting UnixNano and location are stored in Integer and Interface.
 func TimeInLocation(key string, t time.Time, loc *time.Location) Field {
-	return field.TimeInLocation(key, t, loc)
+	if loc != nil {
+		t = t.In(loc)
+	}
+	return Field{
+		Key:       key,
+		Type:      ftype.Time,
+		Integer:   t.UnixNano(),
+		Interface: loc,
+	}
+}
+
+// TimeFull constructs a Field of Type TimeFull carrying the full time.Time
+// value in Field.Interface without normalization to UnixNano.
+func TimeFull(key string, t time.Time) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.TimeFull,
+		Interface: t,
+	}
+}
+
+// TimeFullPtr constructs a TimeFull field from a *time.Time.
+//
+// If value is nil, Skip is returned.
+func TimeFullPtr(key string, value *time.Time) Field {
+	if value == nil {
+		return Skip()
+	}
+	return TimeFull(key, *value)
+}
+
+// Error constructs a Field of Type Error carrying an error value.
+//
+// The error may be nil; encoding helpers SHOULD handle nil and typed-nil
+// receivers gracefully.
+func Error(key string, err error) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Error,
+		Interface: err,
+	}
+}
+
+// ErrorPtr constructs an Error field from a *error.
+//
+// If value is nil, Skip is returned. If *value is nil, a nil error is stored.
+func ErrorPtr(key string, value *error) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Error(key, *value)
+}
+
+// Stringer constructs a Field of Type Stringer carrying a fmt.Stringer value.
+//
+// The value may be nil; encoding helpers are expected to guard against panics
+// from String() and report them as diagnostic strings if needed.
+func Stringer(key string, s fmt.Stringer) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Stringer,
+		Interface: s,
+	}
+}
+
+// StringerPtr constructs a Stringer field from a *fmt.Stringer.
+//
+// If value is nil, Skip is returned.
+func StringerPtr(key string, value *fmt.Stringer) Field {
+	if value == nil {
+		return Skip()
+	}
+	return Stringer(key, *value)
+}
+
+// Reflect constructs a Field of Type Reflect carrying an arbitrary value.
+//
+// Encoders will typically use reflection to inspect and serialize the value.
+// This is flexible but slower than using more specific Types.
+func Reflect(key string, v interface{}) Field {
+	return Field{
+		Key:       key,
+		Type:      ftype.Reflect,
+		Interface: v,
+	}
+}
+
+// Any chooses a Field constructor based on the dynamic type of v.
+//
+// This is a convenience helper and MAY introduce additional overhead compared
+// to using specific constructors directly.
+func Any(key string, v interface{}) Field {
+	switch val := v.(type) {
+	case nil:
+		return Skip()
+	case string:
+		return String(key, val)
+	case []byte:
+		return ByteString(key, val)
+	case bool:
+		return Bool(key, val)
+	case int:
+		return Int(key, val)
+	case int64:
+		return Int64(key, val)
+	case int32:
+		return Int32(key, val)
+	case int16:
+		return Int16(key, val)
+	case int8:
+		return Int8(key, val)
+	case uint:
+		return Uint(key, val)
+	case uint64:
+		return Uint64(key, val)
+	case uint32:
+		return Uint32(key, val)
+	case uint16:
+		return Uint16(key, val)
+	case uint8:
+		return Uint8(key, val)
+	case uintptr:
+		return Uintptr(key, val)
+	case float64:
+		return Float64(key, val)
+	case float32:
+		return Float32(key, val)
+	case complex128:
+		return Complex128(key, val)
+	case complex64:
+		return Complex64(key, val)
+	case time.Time:
+		return TimeFull(key, val)
+	case time.Duration:
+		return Duration(key, val)
+	case error:
+		return Error(key, val)
+	case fmt.Stringer:
+		return Stringer(key, val)
+	case base.ArrayMarshaler:
+		return Array(key, val)
+	case base.ObjectMarshaler:
+		return Object(key, val)
+	default:
+		return Reflect(key, v)
+	}
 }
