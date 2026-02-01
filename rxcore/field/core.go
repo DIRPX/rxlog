@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// LogSchemaVersion is the field key used to record the version identifier

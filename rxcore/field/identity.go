@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// SessionID is the field key that identifies a logical user or client

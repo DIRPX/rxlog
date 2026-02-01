@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// Caller is the field key that encodes caller information (source file,

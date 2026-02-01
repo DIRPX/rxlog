@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// CorrelationID is the field key for an application-level correlation

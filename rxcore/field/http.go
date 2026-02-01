@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// HTTPMethod is the field key that records the HTTP request method

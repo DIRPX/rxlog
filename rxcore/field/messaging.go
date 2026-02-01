@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
 	// MessagingSystem is the field key that identifies the messaging or

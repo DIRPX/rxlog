@@ -14,17 +14,14 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
-	// GRPCService is the field key that records the gRPC service name
-	// handling the request.
-	GRPCService = "grpc_service"
+	// FilePath is the field key that records a file system path associated
+	// with the log entry.
+	FilePath = "file_path"
 
-	// GRPCMethod is the field key that records the gRPC method name.
-	GRPCMethod = "grpc_method"
-
-	// GRPCCode is the field key that records the gRPC status code for the
-	// RPC (for example, "OK", "Unavailable").
-	GRPCCode = "grpc_code"
+	// FileName is the field key that records just the file name component
+	// of a path.
+	FileName = "file_name"
 )

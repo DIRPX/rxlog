@@ -25,7 +25,7 @@ import (
 	"dirpx.dev/rxlog/rxapi/name"
 	"dirpx.dev/rxlog/rxapi/reflect"
 	"dirpx.dev/rxlog/rxapi/stack"
-	"dirpx.dev/rxlog/rxcore/field/fields"
+	"dirpx.dev/rxlog/rxcore/field"
 )
 
 // Config describes how a log Encoder SHOULD serialize log entries to bytes.
@@ -313,14 +313,14 @@ type Config struct {
 // needed before constructing a concrete encoder.
 func NewDefaultConfig() Config {
 	return Config{
-		MessageKey:        fields.Message,
-		LevelKey:          fields.Level,
-		TimeKey:           fields.Timestamp,
-		CallerKey:         fields.Caller,
-		StacktraceKey:     fields.Stacktrace,
-		NameKey:           fields.Logger,
-		ErrorKey:          fields.Error,
-		OperationKey:      fields.Operation,
+		MessageKey:        field.Message,
+		LevelKey:          field.Level,
+		TimeKey:           field.Timestamp,
+		CallerKey:         field.Caller,
+		StacktraceKey:     field.Stacktrace,
+		NameKey:           field.Logger,
+		ErrorKey:          field.Error,
+		OperationKey:      field.Operation,
 		EncodeLevel:       nil,
 		EncodeTime:        nil,
 		EncodeDuration:    nil,

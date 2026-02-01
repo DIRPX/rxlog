@@ -193,4 +193,4 @@
 // logging across the rxlog ecosystem and SHOULD prefer extending the schema
 // in a consistent manner rather than redefining existing concepts under
 // different names.
-package fields
+package field

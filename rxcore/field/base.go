@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 // -----------------------------------------------------------------------------
 // Core log schema and generic event metadata.

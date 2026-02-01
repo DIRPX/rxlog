@@ -26,7 +26,7 @@ import (
 
 	httpctl "dirpx.dev/rxlog/levelctl/http"
 	"dirpx.dev/rxlog/rxapi/level"
-	"dirpx.dev/rxlog/rxcore/field/fields"
+	"dirpx.dev/rxlog/rxcore/field"
 	rxclvl "dirpx.dev/rxlog/rxcore/level"
 )
 
@@ -78,9 +78,9 @@ func TestHandler_GetReturnsCurrentLevel(t *testing.T) {
 
 	m := decodeJSONMap(t, res.Body)
 
-	levelValue, ok := m[fields.Level]
+	levelValue, ok := m[field.Level]
 	if !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Level, m)
+		t.Fatalf("response JSON is missing %q field: %#v", field.Level, m)
 	}
 	if levelValue != level.Info.String() {
 		t.Fatalf("expected level %q, got %q", level.Info.String(), levelValue)
@@ -129,9 +129,9 @@ func TestHandler_PutViaQueryUpdatesLevel(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	levelValue, ok := m[fields.Level]
+	levelValue, ok := m[field.Level]
 	if !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Level, m)
+		t.Fatalf("response JSON is missing %q field: %#v", field.Level, m)
 	}
 	if levelValue != level.Error.String() {
 		t.Fatalf("expected response level %q, got %q", level.Error.String(), levelValue)
@@ -144,7 +144,7 @@ func TestHandler_PutViaQueryUpdatesLevel(t *testing.T) {
 func TestHandler_PostJSONUpdatesLevel(t *testing.T) {
 	h, atomicLvl := newTestHandler(t, level.Warn)
 
-	body := `{"` + fields.Level + `":"info"}`
+	body := `{"` + field.Level + `":"info"}`
 	req := httptest.NewRequest(http.MethodPost, "/debug/log-level", strings.NewReader(body))
 	req.Header.Set(httpctl.HeaderContentType, "application/json")
 	rec := httptest.NewRecorder()
@@ -157,9 +157,9 @@ func TestHandler_PostJSONUpdatesLevel(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	levelValue, ok := m[fields.Level]
+	levelValue, ok := m[field.Level]
 	if !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Level, m)
+		t.Fatalf("response JSON is missing %q field: %#v", field.Level, m)
 	}
 	if levelValue != level.Info.String() {
 		t.Fatalf("expected response level %q, got %q", level.Info.String(), levelValue)
@@ -184,9 +184,9 @@ func TestHandler_PostPlainTextUpdatesLevel(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	levelValue, ok := m[fields.Level]
+	levelValue, ok := m[field.Level]
 	if !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Level, m)
+		t.Fatalf("response JSON is missing %q field: %#v", field.Level, m)
 	}
 	if levelValue != level.Warn.String() {
 		t.Fatalf("expected response level %q, got %q", level.Warn.String(), levelValue)
@@ -210,9 +210,9 @@ func TestHandler_ReadOnlyBlocksMutation(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	msg, ok := m[fields.Error]
+	msg, ok := m[field.Error]
 	if !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Error, m)
+		t.Fatalf("response JSON is missing %q field: %#v", field.Error, m)
 	}
 	if msg == "" {
 		t.Fatalf("expected non-empty error message")
@@ -237,8 +237,8 @@ func TestHandler_InvalidJSONReturns400(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	if _, ok := m[fields.Error]; !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Error, m)
+	if _, ok := m[field.Error]; !ok {
+		t.Fatalf("response JSON is missing %q field: %#v", field.Error, m)
 	}
 }
 
@@ -256,8 +256,8 @@ func TestHandler_InvalidLevelReturns400(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	if _, ok := m[fields.Error]; !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Error, m)
+	if _, ok := m[field.Error]; !ok {
+		t.Fatalf("response JSON is missing %q field: %#v", field.Error, m)
 	}
 }
 
@@ -276,8 +276,8 @@ func TestHandler_MissingLevelReturns400(t *testing.T) {
 	}
 	m := decodeJSONMap(t, res.Body)
 
-	if _, ok := m[fields.Error]; !ok {
-		t.Fatalf("response JSON is missing %q field: %#v", fields.Error, m)
+	if _, ok := m[field.Error]; !ok {
+		t.Fatalf("response JSON is missing %q field: %#v", field.Error, m)
 	}
 }
 

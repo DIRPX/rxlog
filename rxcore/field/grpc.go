@@ -14,13 +14,17 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
-	// OrderID is the field key that identifies an order in commerce-like
-	// domains.
-	OrderID = "order_id"
+	// GRPCService is the field key that records the gRPC service name
+	// handling the request.
+	GRPCService = "grpc_service"
 
-	// PaymentID is the field key that identifies a payment or transaction.
-	PaymentID = "payment_id"
+	// GRPCMethod is the field key that records the gRPC method name.
+	GRPCMethod = "grpc_method"
+
+	// GRPCCode is the field key that records the gRPC status code for the
+	// RPC (for example, "OK", "Unavailable").
+	GRPCCode = "grpc_code"
 )

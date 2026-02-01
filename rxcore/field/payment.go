@@ -14,14 +14,13 @@
    limitations under the License.
 */
 
-package fields
+package field
 
 const (
-	// FilePath is the field key that records a file system path associated
-	// with the log entry.
-	FilePath = "file_path"
+	// OrderID is the field key that identifies an order in commerce-like
+	// domains.
+	OrderID = "order_id"
 
-	// FileName is the field key that records just the file name component
-	// of a path.
-	FileName = "file_name"
+	// PaymentID is the field key that identifies a payment or transaction.
+	PaymentID = "payment_id"
 )

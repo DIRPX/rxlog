@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"dirpx.dev/rxlog/rxapi/level"
-	"dirpx.dev/rxlog/rxcore/field/fields"
+	"dirpx.dev/rxlog/rxcore/field"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 
 	// DefaultLevelParamName is the default query/body parameter name used
 	// to carry the level string when no explicit ParamName is configured.
-	DefaultLevelParamName string = fields.Level
+	DefaultLevelParamName string = field.Level
 )
 
 const (
@@ -95,10 +95,10 @@ const (
 //
 // On client error (for example, invalid level string, malformed JSON),
 // the handler responds with HTTP 400 and a JSON error payload whose
-// field name is derived from fields.Error.
+// field name is derived from field.Error.
 //
 // The JSON keys for the current level and error messages are taken from
-// fields.Level and fields.Error respectively, so they stay consistent
+// field.Level and field.Error respectively, so they stay consistent
 // with the global logging schema.
 //
 // Misconfiguration (for example, a nil Level reference) or unexpected
@@ -206,7 +206,7 @@ func (h *Handler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 
 	switch r.Method {
 	case http.MethodGet:
-		// Return current level as JSON: { "<fields.Level>": "info" }.
+		// Return current level as JSON: { "<field.Level>": "info" }.
 		w.Header().Set(HeaderCacheControl, CacheControlNoStore)
 		return writeJSONLevel(w, enc, http.StatusOK, h.Level.Level().String())
 
@@ -268,12 +268,12 @@ func (h *Handler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 }
 
 // writeJSONLevel writes a JSON response containing the current level
-// under the field key defined by fields.Level.
+// under the field key defined by field.Level.
 //
 // It sets the Content-Type header to ContentTypeJSON, writes the given
 // HTTP status code, and then encodes a single-object payload like:
 //
-//	{ "<fields.Level>": "<level>" }
+//	{ "<field.Level>": "<level>" }
 //
 // The encoder is provided by the caller so that a single json.Encoder
 // can be reused across multiple responses within serveHTTP if desired.
@@ -289,17 +289,17 @@ func writeJSONLevel(
 	}
 
 	return enc.Encode(map[string]string{
-		fields.Level: levelValue,
+		field.Level: levelValue,
 	})
 }
 
 // writeJSONError writes a JSON error response using the field key defined
-// by fields.Error.
+// by field.Error.
 //
 // It sets the Content-Type header to ContentTypeJSON, writes the given
 // HTTP status code, and then encodes a single-object payload like:
 //
-//	{ "<fields.Error>": "<message>" }
+//	{ "<field.Error>": "<message>" }
 //
 // This helper centralizes the error response shape so that all error
 // payloads produced by Handler are consistent with the global field
@@ -316,7 +316,7 @@ func writeJSONError(
 	}
 
 	return enc.Encode(map[string]string{
-		fields.Error: message,
+		field.Error: message,
 	})
 }
 
