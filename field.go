@@ -26,22 +26,62 @@ import (
 	ftype "dirpx.dev/rxlog/rxapi/field/type"
 )
 
-// Type aliases for rxapi/field types.
+// Type aliases for core field types.
+//
+// These aliases provide convenient access to field-related types from the root
+// rxlog package without needing to import multiple sub-packages.
 type (
-	// Field is an alias for rxapi/field.Field, representing a structured
-	// key-value pair for logging.
+	// Field represents a structured key-value pair for logging.
+	//
+	// Fields are the fundamental building blocks of structured logs. Each field
+	// consists of a key (string), a type indicator, and the actual value stored
+	// in one of several internal representations optimized for zero-allocation
+	// encoding.
+	//
+	// Example:
+	//
+	//	f := rxlog.String("user", "alice")
+	//	// f.Key = "user", f.Type = StringFieldType, f.String = "alice"
 	Field = field.Field
 
-	// FieldType is an alias for rxapi/field/type.Type, identifying the
-	// type of value stored in a Field.
+	// FieldType identifies which member of the Field union is active.
+	//
+	// The type determines how encoders interpret and serialize the field's value.
+	// For example, Int64FieldType indicates the value is in Field.Integer and
+	// should be encoded as a signed 64-bit integer.
 	FieldType = ftype.Type
 
-	// ArrayMarshaler is an alias for rxapi/encoder/base.ArrayMarshaler,
-	// used for custom array serialization in fields.
+	// ArrayMarshaler is the interface for custom array serialization.
+	//
+	// Implement this interface to provide zero-allocation encoding of custom
+	// array-like types. The encoder will call MarshalLogArray to serialize the
+	// array elements without using reflection.
+	//
+	// Example:
+	//
+	//	type UserIDs []int64
+	//	func (ids UserIDs) MarshalLogArray(enc ArrayEncoder, dst *Buffer) (*Buffer, error) {
+	//	    for _, id := range ids {
+	//	        dst, _ = enc.AppendInt64(dst, id)
+	//	    }
+	//	    return dst, nil
+	//	}
 	ArrayMarshaler = base.ArrayMarshaler
 
-	// ObjectMarshaler is an alias for rxapi/encoder/base.ObjectMarshaler,
-	// used for custom object serialization in fields.
+	// ObjectMarshaler is the interface for custom object serialization.
+	//
+	// Implement this interface to provide zero-allocation encoding of custom
+	// struct types. The encoder will call MarshalLogObject to serialize the
+	// object's fields without using reflection.
+	//
+	// Example:
+	//
+	//	type User struct { ID int64; Name string }
+	//	func (u User) MarshalLogObject(enc ObjectEncoder, dst *Buffer) (*Buffer, error) {
+	//	    dst, _ = enc.AppendInt64(dst, "id", u.ID)
+	//	    dst, _ = enc.AppendString(dst, "name", u.Name)
+	//	    return dst, nil
+	//	}
 	ObjectMarshaler = base.ObjectMarshaler
 )
 
@@ -136,10 +176,24 @@ const (
 	InlineFieldType = ftype.Inline
 )
 
-// Array constructs a Field of Type Array carrying an ArrayMarshaler.
+// Array constructs a Field that encodes an array-like value using a custom marshaler.
 //
-// The marshaler MUST NOT be nil. The encoder will delegate array serialization
-// to this value without using reflection.
+// The provided ArrayMarshaler will be invoked by the encoder to serialize the array
+// elements without using reflection, enabling zero-allocation encoding of custom
+// array types.
+//
+// Example:
+//
+//	type UserIDs []int64
+//	func (ids UserIDs) MarshalLogArray(enc ArrayEncoder, dst *Buffer) (*Buffer, error) {
+//	    for _, id := range ids {
+//	        dst, _ = enc.AppendInt64(dst, id)
+//	    }
+//	    return dst, nil
+//	}
+//	field := rxlog.Array("user_ids", UserIDs{1, 2, 3})
+//
+// The marshaler MUST NOT be nil. Passing nil will result in undefined behavior.
 func Array(key string, m base.ArrayMarshaler) Field {
 	return Field{
 		Key:       key,
@@ -148,10 +202,26 @@ func Array(key string, m base.ArrayMarshaler) Field {
 	}
 }
 
-// Object constructs a Field of Type Object carrying an ObjectMarshaler.
+// Object constructs a Field that encodes a structured object using a custom marshaler.
 //
-// The marshaler MUST NOT be nil. The encoder will call MarshalLogObject to
-// emit nested fields.
+// The provided ObjectMarshaler will be invoked by the encoder to serialize nested
+// fields without using reflection, enabling zero-allocation encoding of custom
+// struct types.
+//
+// Example:
+//
+//	type User struct {
+//	    ID   int64
+//	    Name string
+//	}
+//	func (u User) MarshalLogObject(enc ObjectEncoder, dst *Buffer) (*Buffer, error) {
+//	    dst, _ = enc.AppendInt64(dst, "id", u.ID)
+//	    dst, _ = enc.AppendString(dst, "name", u.Name)
+//	    return dst, nil
+//	}
+//	field := rxlog.Object("user", User{ID: 123, Name: "Alice"})
+//
+// The marshaler MUST NOT be nil. Passing nil will result in undefined behavior.
 func Object(key string, m base.ObjectMarshaler) Field {
 	return Field{
 		Key:       key,
@@ -160,10 +230,29 @@ func Object(key string, m base.ObjectMarshaler) Field {
 	}
 }
 
-// Inline constructs a Field of Type Inline carrying an ObjectMarshaler whose
-// fields will be inlined into the surrounding object.
+// Inline constructs a Field whose nested fields are merged into the parent object.
 //
-// The encoder MUST NOT create an additional nesting level for this field.
+// Unlike Object, which creates a nested structure, Inline flattens the fields from
+// the ObjectMarshaler directly into the enclosing log entry. This is useful for
+// composing log contexts from multiple sources without adding nesting.
+//
+// Example:
+//
+//	type RequestContext struct {
+//	    TraceID string
+//	    UserID  int64
+//	}
+//	func (rc RequestContext) MarshalLogObject(enc ObjectEncoder, dst *Buffer) (*Buffer, error) {
+//	    dst, _ = enc.AppendString(dst, "trace_id", rc.TraceID)
+//	    dst, _ = enc.AppendInt64(dst, "user_id", rc.UserID)
+//	    return dst, nil
+//	}
+//
+//	// With Object: {"request": {"trace_id": "...", "user_id": 123}, "msg": "..."}
+//	// With Inline: {"trace_id": "...", "user_id": 123, "msg": "..."}
+//	field := rxlog.Inline(RequestContext{TraceID: "abc", UserID: 123})
+//
+// Note that Inline fields have no key, as their contents are merged directly.
 func Inline(m base.ObjectMarshaler) Field {
 	return Field{
 		Type:      ftype.Inline,
@@ -171,10 +260,23 @@ func Inline(m base.ObjectMarshaler) Field {
 	}
 }
 
-// Namespace constructs a Field of Type Namespace that opens a logical
-// sub-namespace under the given key.
+// Namespace constructs a Field that creates a nested scope for subsequent fields.
 //
-// Encoders typically implement this as a nested object or scope in the output.
+// This is primarily used by loggers to organize hierarchical field structures.
+// Encoders typically implement this as opening a nested object in JSON or a new
+// indentation level in text formats.
+//
+// Example:
+//
+//	logger.Info("request completed",
+//	    rxlog.Namespace("http"),
+//	    rxlog.Int("status", 200),
+//	    rxlog.String("method", "GET"),
+//	)
+//	// JSON output: {"http": {"status": 200, "method": "GET"}, "msg": "request completed"}
+//
+// The behavior of Namespace depends on the encoder implementation. Most structured
+// encoders will create a nested object under the given key.
 func Namespace(key string) Field {
 	return Field{
 		Key:  key,
@@ -182,19 +284,45 @@ func Namespace(key string) Field {
 	}
 }
 
-// Skip constructs a Field of Type Skip which is a no-op placeholder.
+// Skip constructs a no-op Field that encoders ignore completely.
 //
-// Encoders MUST ignore Skip fields and emit nothing for them.
+// This is useful as a sentinel value when constructing fields conditionally,
+// particularly in the *Ptr family of constructors which return Skip() for nil
+// pointers. Encoders MUST skip these fields entirely without emitting any output.
+//
+// Example:
+//
+//	var name *string
+//	field := rxlog.StringPtr("name", name)  // Returns Skip() when name is nil
+//
+//	// Conditional field:
+//	func optionalField(include bool, key, val string) Field {
+//	    if !include {
+//	        return rxlog.Skip()
+//	    }
+//	    return rxlog.String(key, val)
+//	}
 func Skip() Field {
 	return Field{
 		Type: ftype.Skip,
 	}
 }
 
-// Binary constructs a Field of Type Binary carrying an opaque byte slice.
+// Binary constructs a Field containing an opaque byte sequence.
 //
-// The slice is NOT copied; callers MUST NOT mutate it after constructing the
-// field if encoders can access it concurrently.
+// Use this for binary data like hashes, tokens, or protocol buffers that should
+// not be interpreted as text. Encoders typically base64-encode binary fields or
+// emit them as byte arrays depending on the output format.
+//
+// Example:
+//
+//	hash := sha256.Sum256(data)
+//	field := rxlog.Binary("hash", hash[:])
+//	// JSON output: {"hash": "base64encodedstring..."}
+//
+// IMPORTANT: The slice is stored by reference without copying. Callers MUST NOT
+// modify the slice after constructing the field if it may be accessed concurrently
+// by encoders.
 func Binary(key string, b []byte) Field {
 	return Field{
 		Key:       key,
@@ -203,9 +331,19 @@ func Binary(key string, b []byte) Field {
 	}
 }
 
-// BinaryPtr constructs a Binary field from a *[]byte.
+// BinaryPtr constructs a Binary field from a byte slice pointer.
 //
-// If value is nil, Skip is returned.
+// Returns Skip() if the pointer is nil, allowing safe handling of optional
+// binary data without explicit nil checks.
+//
+// Example:
+//
+//	var token *[]byte
+//	if hasAuth {
+//	    t := getAuthToken()
+//	    token = &t
+//	}
+//	field := rxlog.BinaryPtr("auth_token", token)  // Skip if token is nil
 func BinaryPtr(key string, value *[]byte) Field {
 	if value == nil {
 		return Skip()
@@ -213,9 +351,21 @@ func BinaryPtr(key string, value *[]byte) Field {
 	return Binary(key, *value)
 }
 
-// ByteString constructs a Field of Type ByteString carrying a UTF-8 byte slice.
+// ByteString constructs a Field containing UTF-8 encoded text as a byte slice.
 //
-// The slice is NOT copied. Encoders MAY validate UTF-8 but are not required to.
+// This is semantically equivalent to String but avoids allocating a string when
+// the data is already available as bytes. Useful for zero-copy handling of text
+// from I/O buffers or network packets.
+//
+// Example:
+//
+//	buf := make([]byte, n)
+//	io.ReadFull(conn, buf)
+//	field := rxlog.ByteString("payload", buf)
+//	// Equivalent to: rxlog.String("payload", string(buf)) but without allocation
+//
+// The slice is stored by reference without copying. Encoders may or may not
+// validate UTF-8 encoding depending on their implementation.
 func ByteString(key string, b []byte) Field {
 	return Field{
 		Key:       key,
@@ -224,9 +374,9 @@ func ByteString(key string, b []byte) Field {
 	}
 }
 
-// ByteStringPtr constructs a ByteString field from a *[]byte.
+// ByteStringPtr constructs a ByteString field from a byte slice pointer.
 //
-// If value is nil, Skip is returned.
+// Returns Skip() if the pointer is nil.
 func ByteStringPtr(key string, value *[]byte) Field {
 	if value == nil {
 		return Skip()
@@ -234,7 +384,18 @@ func ByteStringPtr(key string, value *[]byte) Field {
 	return ByteString(key, *value)
 }
 
-// String constructs a Field of Type String carrying a textual value.
+// String constructs a Field containing a text value.
+//
+// This is the most commonly used field constructor for logging arbitrary text data
+// such as messages, identifiers, status codes, and descriptions.
+//
+// Example:
+//
+//	logger.Info("user logged in",
+//	    rxlog.String("username", "alice"),
+//	    rxlog.String("ip", "192.168.1.1"),
+//	)
+//	// JSON output: {"msg": "user logged in", "username": "alice", "ip": "192.168.1.1"}
 func String(key, value string) Field {
 	return Field{
 		Key:    key,
@@ -243,9 +404,19 @@ func String(key, value string) Field {
 	}
 }
 
-// StringPtr constructs a String field from a *string.
+// StringPtr constructs a String field from a string pointer.
 //
-// If value is nil, Skip is returned.
+// Returns Skip() if the pointer is nil, enabling convenient optional string fields
+// without explicit nil checks.
+//
+// Example:
+//
+//	var email *string
+//	if user.HasEmail {
+//	    e := user.Email
+//	    email = &e
+//	}
+//	field := rxlog.StringPtr("email", email)  // Skip if email is nil
 func StringPtr(key string, value *string) Field {
 	if value == nil {
 		return Skip()
@@ -253,9 +424,20 @@ func StringPtr(key string, value *string) Field {
 	return String(key, *value)
 }
 
-// Bool constructs a Field of Type Bool carrying a boolean value.
+// Bool constructs a Field containing a boolean value.
 //
-// The value is stored as 0 (false) or 1 (true) in Field.Integer.
+// Commonly used for flags, status indicators, and conditional states.
+//
+// Example:
+//
+//	logger.Info("operation completed",
+//	    rxlog.Bool("success", true),
+//	    rxlog.Bool("cached", false),
+//	)
+//	// JSON output: {"msg": "operation completed", "success": true, "cached": false}
+//
+// The boolean value is stored as an integer (0 for false, 1 for true) in the
+// field's internal representation for efficiency.
 func Bool(key string, value bool) Field {
 	var i int64
 	if value {
@@ -268,9 +450,9 @@ func Bool(key string, value bool) Field {
 	}
 }
 
-// BoolPtr constructs a Bool field from a *bool.
+// BoolPtr constructs a Bool field from a boolean pointer.
 //
-// If value is nil, Skip is returned.
+// Returns Skip() if the pointer is nil.
 func BoolPtr(key string, value *bool) Field {
 	if value == nil {
 		return Skip()
@@ -278,7 +460,18 @@ func BoolPtr(key string, value *bool) Field {
 	return Bool(key, *value)
 }
 
-// Int64 constructs a Field of Type Int64 carrying an int64 value.
+// Int64 constructs a Field containing a signed 64-bit integer.
+//
+// Use this for IDs, counts, timestamps (as Unix time), and other numeric values
+// that fit in a signed 64-bit range.
+//
+// Example:
+//
+//	logger.Info("user created",
+//	    rxlog.Int64("user_id", 1234567890),
+//	    rxlog.Int64("created_at", time.Now().Unix()),
+//	)
+//	// JSON output: {"msg": "user created", "user_id": 1234567890, "created_at": 1735689600}
 func Int64(key string, value int64) Field {
 	return Field{
 		Key:     key,
@@ -356,9 +549,17 @@ func Int8Ptr(key string, value *int8) Field {
 	return Int8(key, *value)
 }
 
-// Int constructs a Field of Type Int64 from a Go int value.
+// Int constructs a Field containing a signed integer.
 //
-// This normalizes platform-dependent int to the canonical Int64 representation.
+// This is a convenience wrapper around Int64 for Go's platform-dependent int type.
+// The value is normalized to int64 for consistent encoding regardless of platform
+// (32-bit vs 64-bit).
+//
+// Example:
+//
+//	count := len(items)
+//	field := rxlog.Int("count", count)
+//	// Equivalent to: rxlog.Int64("count", int64(count))
 func Int(key string, value int) Field {
 	return Field{
 		Key:     key,
@@ -576,9 +777,21 @@ func Complex64Ptr(key string, value *complex64) Field {
 	return Complex64(key, *value)
 }
 
-// Duration constructs a Field of Type Duration carrying a time.Duration value.
+// Duration constructs a Field containing a time duration.
 //
-// The duration is stored in nanoseconds in Field.Integer.
+// Durations are commonly used to log elapsed time, timeouts, and intervals.
+// The duration is stored as nanoseconds internally, but encoders typically format
+// it in a human-readable way (e.g., "2.5s", "100ms") depending on the encoder
+// configuration.
+//
+// Example:
+//
+//	start := time.Now()
+//	doWork()
+//	elapsed := time.Since(start)
+//	logger.Info("work completed", rxlog.Duration("elapsed", elapsed))
+//	// JSON output: {"msg": "work completed", "elapsed": 2500000000}
+//	// Or with duration encoder: {"msg": "work completed", "elapsed": "2.5s"}
 func Duration(key string, value time.Duration) Field {
 	return Field{
 		Key:     key,
@@ -597,10 +810,20 @@ func DurationPtr(key string, value *time.Duration) Field {
 	return Duration(key, *value)
 }
 
-// Time constructs a Field of Type Time from the provided time.Time.
+// Time constructs a Field containing a timestamp.
 //
-// The timestamp is normalized to UTC and stored as UnixNano in Field.Integer.
-// If the original location is not UTC, it is stored in Field.Interface.
+// The timestamp is normalized to UTC and stored as nanoseconds since the Unix epoch.
+// If the original time was not in UTC, the location is preserved for potential use
+// by encoders that support timezone-aware formatting.
+//
+// Example:
+//
+//	now := time.Now()
+//	logger.Info("event occurred", rxlog.Time("occurred_at", now))
+//	// JSON output: {"msg": "event occurred", "occurred_at": "2025-01-02T15:04:05.123Z"}
+//
+// Most encoders will format timestamps as RFC3339/ISO8601 strings. Use TimeFull()
+// if you need to preserve sub-second precision beyond nanoseconds.
 func Time(key string, t time.Time) Field {
 	utc := t.UTC()
 	var loc *time.Location
@@ -625,9 +848,20 @@ func TimePtr(key string, value *time.Time) Field {
 	return Time(key, *value)
 }
 
-// TimeInLocation constructs a Time field by first converting t to loc.
+// TimeInLocation constructs a Time field with the timestamp converted to a specific location.
 //
-// The resulting UnixNano and location are stored in Integer and Interface.
+// This is useful when you need to log times in a specific timezone (e.g., local time
+// of an event or a user's timezone) rather than UTC. The location information is
+// preserved for encoders that support timezone-aware formatting.
+//
+// Example:
+//
+//	loc, _ := time.LoadLocation("America/New_York")
+//	eventTime := time.Now()
+//	field := rxlog.TimeInLocation("event_time", eventTime, loc)
+//	// Encoder may format as: "2025-01-02T10:04:05-05:00" (EST)
+//
+// If loc is nil, the time is used as-is without conversion.
 func TimeInLocation(key string, t time.Time, loc *time.Location) Field {
 	if loc != nil {
 		t = t.In(loc)
@@ -660,10 +894,22 @@ func TimeFullPtr(key string, value *time.Time) Field {
 	return TimeFull(key, *value)
 }
 
-// Error constructs a Field of Type Error carrying an error value.
+// Error constructs a Field containing an error value.
 //
-// The error may be nil; encoding helpers SHOULD handle nil and typed-nil
-// receivers gracefully.
+// This is one of the most commonly used field constructors for logging failures
+// and exceptional conditions. Encoders typically extract the error message via
+// Error() and may include additional structured information like stack traces
+// or wrapped error chains depending on the error type and encoder configuration.
+//
+// Example:
+//
+//	if err := doSomething(); err != nil {
+//	    logger.Error("operation failed", rxlog.Error("error", err))
+//	}
+//	// JSON output: {"level": "error", "msg": "operation failed", "error": "connection timeout"}
+//
+// The error value may be nil; encoders will handle nil errors gracefully, typically
+// by emitting "null" or omitting the field entirely depending on configuration.
 func Error(key string, err error) Field {
 	return Field{
 		Key:       key,
@@ -716,10 +962,38 @@ func Reflect(key string, v interface{}) Field {
 	}
 }
 
-// Any chooses a Field constructor based on the dynamic type of v.
+// Any constructs a Field by automatically choosing the appropriate constructor
+// based on the dynamic type of the value.
 //
-// This is a convenience helper and MAY introduce additional overhead compared
-// to using specific constructors directly.
+// This provides a convenient way to log values when the type is not known at compile
+// time or when writing generic logging code. However, it introduces runtime type
+// checking overhead and should be avoided in performance-critical code paths where
+// the type is known.
+//
+// Supported types (in order of precedence):
+//   - nil → Skip()
+//   - string → String()
+//   - []byte → ByteString()
+//   - bool → Bool()
+//   - int, int8, int16, int32, int64 → Int*()
+//   - uint, uint8, uint16, uint32, uint64, uintptr → Uint*()
+//   - float32, float64 → Float*()
+//   - complex64, complex128 → Complex*()
+//   - time.Time → TimeFull()
+//   - time.Duration → Duration()
+//   - error → Error()
+//   - fmt.Stringer → Stringer()
+//   - ArrayMarshaler → Array()
+//   - ObjectMarshaler → Object()
+//   - all other types → Reflect()
+//
+// Example:
+//
+//	var value interface{} = getUserInput()
+//	logger.Info("received input", rxlog.Any("value", value))
+//
+// For best performance, prefer using type-specific constructors when the type
+// is known at compile time.
 func Any(key string, v interface{}) Field {
 	switch val := v.(type) {
 	case nil:
