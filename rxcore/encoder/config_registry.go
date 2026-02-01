@@ -21,6 +21,7 @@ import (
 	"dirpx.dev/rxlog/rxcore/chrono/duration"
 	"dirpx.dev/rxlog/rxcore/chrono/time"
 	errorpkg "dirpx.dev/rxlog/rxcore/error"
+	"dirpx.dev/rxlog/rxcore/field/fields"
 	"dirpx.dev/rxlog/rxcore/level"
 	namepkg "dirpx.dev/rxlog/rxcore/name"
 	"dirpx.dev/rxlog/rxcore/registry"
@@ -39,14 +40,14 @@ func init() {
 
 	// JSON format: structured JSON with lowercase levels, RFC3339 timestamps.
 	encoderConfigRegistry.Register("json", Config{
-		MessageKey:        "msg",
-		LevelKey:          "level",
-		TimeKey:           "time",
-		CallerKey:         "caller",
-		StacktraceKey:     "stacktrace",
-		NameKey:           "logger",
-		ErrorKey:          "error",
-		OperationKey:      "function",
+		MessageKey:        fields.Message,
+		LevelKey:          fields.Level,
+		TimeKey:           fields.Timestamp,
+		CallerKey:         fields.Caller,
+		StacktraceKey:     fields.Stacktrace,
+		NameKey:           fields.Logger,
+		ErrorKey:          fields.Error,
+		OperationKey:      fields.Function,
 		EncodeLevel:       level.LowercaseLevelEncoder,
 		EncodeTime:        time.RFC3339TimeEncoder,
 		EncodeDuration:    duration.MillisDurationEncoder,
@@ -69,14 +70,14 @@ func init() {
 
 	// Console format: human-readable with capital levels, short caller.
 	encoderConfigRegistry.Register("console", Config{
-		MessageKey:        "msg",
-		LevelKey:          "level",
-		TimeKey:           "time",
-		CallerKey:         "caller",
-		StacktraceKey:     "stacktrace",
-		NameKey:           "logger",
-		ErrorKey:          "error",
-		OperationKey:      "function",
+		MessageKey:        fields.Message,
+		LevelKey:          fields.Level,
+		TimeKey:           fields.Timestamp,
+		CallerKey:         fields.Caller,
+		StacktraceKey:     fields.Stacktrace,
+		NameKey:           fields.Logger,
+		ErrorKey:          fields.Error,
+		OperationKey:      fields.Function,
 		EncodeLevel:       level.CapitalLevelEncoder,
 		EncodeTime:        time.RFC3339TimeEncoder,
 		EncodeDuration:    duration.StringDurationEncoder,
@@ -99,14 +100,14 @@ func init() {
 
 	// Development format: pretty-printed JSON with full paths for debugging.
 	encoderConfigRegistry.Register("development", Config{
-		MessageKey:        "msg",
-		LevelKey:          "level",
-		TimeKey:           "time",
-		CallerKey:         "caller",
-		StacktraceKey:     "stacktrace",
-		NameKey:           "logger",
-		ErrorKey:          "error",
-		OperationKey:      "function",
+		MessageKey:        fields.Message,
+		LevelKey:          fields.Level,
+		TimeKey:           fields.Timestamp,
+		CallerKey:         fields.Caller,
+		StacktraceKey:     fields.Stacktrace,
+		NameKey:           fields.Logger,
+		ErrorKey:          fields.Error,
+		OperationKey:      fields.Function,
 		EncodeLevel:       level.CapitalLevelEncoder,
 		EncodeTime:        time.RFC3339TimeEncoder,
 		EncodeDuration:    duration.StringDurationEncoder,
@@ -129,14 +130,14 @@ func init() {
 
 	// Production format: compact JSON with minimal overhead.
 	encoderConfigRegistry.Register("production", Config{
-		MessageKey:        "msg",
-		LevelKey:          "level",
-		TimeKey:           "time",
-		CallerKey:         "caller",
-		StacktraceKey:     "stacktrace",
-		NameKey:           "logger",
-		ErrorKey:          "error",
-		OperationKey:      "function",
+		MessageKey:        fields.Message,
+		LevelKey:          fields.Level,
+		TimeKey:           fields.Timestamp,
+		CallerKey:         fields.Caller,
+		StacktraceKey:     fields.Stacktrace,
+		NameKey:           fields.Logger,
+		ErrorKey:          fields.Error,
+		OperationKey:      fields.Function,
 		EncodeLevel:       level.LowercaseLevelEncoder,
 		EncodeTime:        time.ISO8601MillisTimeEncoder,
 		EncodeDuration:    duration.MillisDurationEncoder,
