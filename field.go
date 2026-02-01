@@ -50,39 +50,6 @@ type (
 	// For example, Int64FieldType indicates the value is in Field.Integer and
 	// should be encoded as a signed 64-bit integer.
 	FieldType = ftype.Type
-
-	// ArrayMarshaler is the interface for custom array serialization.
-	//
-	// Implement this interface to provide zero-allocation encoding of custom
-	// array-like types. The encoder will call MarshalLogArray to serialize the
-	// array elements without using reflection.
-	//
-	// Example:
-	//
-	//	type UserIDs []int64
-	//	func (ids UserIDs) MarshalLogArray(enc ArrayEncoder, dst *Buffer) (*Buffer, error) {
-	//	    for _, id := range ids {
-	//	        dst, _ = enc.AppendInt64(dst, id)
-	//	    }
-	//	    return dst, nil
-	//	}
-	ArrayMarshaler = base.ArrayMarshaler
-
-	// ObjectMarshaler is the interface for custom object serialization.
-	//
-	// Implement this interface to provide zero-allocation encoding of custom
-	// struct types. The encoder will call MarshalLogObject to serialize the
-	// object's fields without using reflection.
-	//
-	// Example:
-	//
-	//	type User struct { ID int64; Name string }
-	//	func (u User) MarshalLogObject(enc ObjectEncoder, dst *Buffer) (*Buffer, error) {
-	//	    dst, _ = enc.AppendInt64(dst, "id", u.ID)
-	//	    dst, _ = enc.AppendString(dst, "name", u.Name)
-	//	    return dst, nil
-	//	}
-	ObjectMarshaler = base.ObjectMarshaler
 )
 
 // Field type constants providing convenient access to rxapi/field/type values.
@@ -194,7 +161,7 @@ const (
 //	field := rxlog.Array("user_ids", UserIDs{1, 2, 3})
 //
 // The marshaler MUST NOT be nil. Passing nil will result in undefined behavior.
-func Array(key string, m base.ArrayMarshaler) Field {
+func Array(key string, m ArrayMarshaler) Field {
 	return Field{
 		Key:       key,
 		Type:      ftype.Array,
@@ -222,7 +189,7 @@ func Array(key string, m base.ArrayMarshaler) Field {
 //	field := rxlog.Object("user", User{ID: 123, Name: "Alice"})
 //
 // The marshaler MUST NOT be nil. Passing nil will result in undefined behavior.
-func Object(key string, m base.ObjectMarshaler) Field {
+func Object(key string, m ObjectMarshaler) Field {
 	return Field{
 		Key:       key,
 		Type:      ftype.Object,
@@ -971,21 +938,21 @@ func Reflect(key string, v interface{}) Field {
 // the type is known.
 //
 // Supported types (in order of precedence):
-//   - nil → Skip()
-//   - string → String()
-//   - []byte → ByteString()
-//   - bool → Bool()
-//   - int, int8, int16, int32, int64 → Int*()
-//   - uint, uint8, uint16, uint32, uint64, uintptr → Uint*()
-//   - float32, float64 → Float*()
-//   - complex64, complex128 → Complex*()
-//   - time.Time → TimeFull()
-//   - time.Duration → Duration()
-//   - error → Error()
-//   - fmt.Stringer → Stringer()
-//   - ArrayMarshaler → Array()
-//   - ObjectMarshaler → Object()
-//   - all other types → Reflect()
+//   - nil -> Skip()
+//   - string -> String()
+//   - []byte -> ByteString()
+//   - bool -> Bool()
+//   - int, int8, int16, int32, int64 -> Int*()
+//   - uint, uint8, uint16, uint32, uint64, uintptr -> Uint*()
+//   - float32, float64 -> Float*()
+//   - complex64, complex128 -> Complex*()
+//   - time.Time -> TimeFull()
+//   - time.Duration -> Duration()
+//   - error -> Error()
+//   - fmt.Stringer -> Stringer()
+//   - ArrayMarshaler -> Array()
+//   - ObjectMarshaler -> Object()
+//   - all other types -> Reflect()
 //
 // Example:
 //
